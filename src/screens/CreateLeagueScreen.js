@@ -4,19 +4,40 @@ import {
 } from 'react-native';
 import * as api from '../services/api';
 
-const DEFAULT_SCORING = {
-  eagle: 4,
-  birdie: 3,
-  par: 1,
-  bogey: -1,
-  double_bogey: -2,
-  worse: -3,
+const PRESETS = {
+  balanced: {
+    label: 'Balanced',
+    desc: 'Even mix of scoring and stats. Like a fantasy WR — birdies matter, but ball-striking separates the field.',
+    scoring: {
+      eagle: 5, birdie: 3, par: 0.5, bogey: -1, double_bogey: -3, worse: -5,
+      fir_multiplier: 15, gir_multiplier: 20, distance_multiplier: 0.15,
+      great_shot_bonus: 0.75, poor_shot_penalty: -0.75,
+    },
+  },
+  scoring: {
+    label: 'Score Heavy',
+    desc: 'Birdies and eagles are king. Stats are a tiebreaker. The guy at the top of the real leaderboard usually wins.',
+    scoring: {
+      eagle: 8, birdie: 4, par: 0.5, bogey: -2, double_bogey: -4, worse: -6,
+      fir_multiplier: 8, gir_multiplier: 10, distance_multiplier: 0.05,
+      great_shot_bonus: 0.5, poor_shot_penalty: -0.5,
+    },
+  },
+  stats: {
+    label: 'Stat Heavy',
+    desc: 'Ball-striking and shot quality drive the scores. A player hitting every fairway and green can compete even without many birdies.',
+    scoring: {
+      eagle: 4, birdie: 2, par: 0.5, bogey: -0.5, double_bogey: -2, worse: -3,
+      fir_multiplier: 20, gir_multiplier: 25, distance_multiplier: 0.2,
+      great_shot_bonus: 1.0, poor_shot_penalty: -1.0,
+    },
+  },
 };
 
 export default function CreateLeagueScreen({ navigation }) {
   const [name, setName] = useState('');
   const [teamName, setTeamName] = useState('');
-  const [leagueType, setLeagueType] = useState(null); // null = not selected yet
+  const [leagueType, setLeagueType] = useState(null);
   const [maxTeams, setMaxTeams] = useState('8');
   const [draftRounds, setDraftRounds] = useState('4');
 
@@ -26,12 +47,21 @@ export default function CreateLeagueScreen({ navigation }) {
   // Season-specific
   const [rosterSize, setRosterSize] = useState('6');
   const [startersCount, setStartersCount] = useState('4');
-  const [scoring, setScoring] = useState(DEFAULT_SCORING);
+  const [scoring, setScoring] = useState(PRESETS.balanced.scoring);
+  const [activePreset, setActivePreset] = useState('balanced');
+  const [showCustom, setShowCustom] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
+  function selectPreset(key) {
+    setActivePreset(key);
+    setScoring({ ...PRESETS[key].scoring });
+    setShowCustom(false);
+  }
+
   function updateScoring(key, value) {
-    setScoring(prev => ({ ...prev, [key]: parseInt(value) || 0 }));
+    setActivePreset(null);
+    setScoring(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
   }
 
   async function handleCreate() {
@@ -44,14 +74,15 @@ export default function CreateLeagueScreen({ navigation }) {
         name,
         teamName,
         maxTeams: parseInt(maxTeams),
-        draftRounds: parseInt(draftRounds),
         leagueType,
       };
 
       if (leagueType === 'pool') {
+        params.draftRounds = parseInt(draftRounds);
         params.scoringTopN = parseInt(scoringTopN);
       } else {
         params.rosterSize = parseInt(rosterSize);
+        params.draftRounds = parseInt(rosterSize);
         params.startersCount = parseInt(startersCount);
         params.scoringConfig = scoring;
       }
@@ -88,11 +119,11 @@ export default function CreateLeagueScreen({ navigation }) {
         <TouchableOpacity style={styles.typeCard} onPress={() => setLeagueType('season')}>
           <Text style={styles.typeTitle}>Season-Long Fantasy</Text>
           <Text style={styles.typeDesc}>
-            Like fantasy football — draft a roster, set weekly lineups, earn points based on birdies, eagles, pars, and more across the entire season.
+            Draft a roster, set weekly lineups, earn points from birdies, eagles, fairways hit, greens in regulation, and more across the entire season.
           </Text>
           <View style={styles.typeBullets}>
             <Text style={styles.bullet}>Set lineups each week</Text>
-            <Text style={styles.bullet}>Points per hole outcome</Text>
+            <Text style={styles.bullet}>Hole scoring + stat bonuses</Text>
             <Text style={styles.bullet}>Season-long standings</Text>
           </View>
         </TouchableOpacity>
@@ -104,7 +135,7 @@ export default function CreateLeagueScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
       <TouchableOpacity onPress={() => setLeagueType(null)}>
-        <Text style={styles.backText}>Back to league type</Text>
+        <Text style={styles.backText}>{'< Back to league type'}</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>
@@ -124,12 +155,12 @@ export default function CreateLeagueScreen({ navigation }) {
       <TextInput style={styles.input} value={maxTeams} onChangeText={setMaxTeams}
         keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
 
-      <Text style={styles.label}>Draft Rounds (players per team)</Text>
-      <TextInput style={styles.input} value={draftRounds} onChangeText={setDraftRounds}
-        keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
-
       {leagueType === 'pool' ? (
         <>
+          <Text style={styles.label}>Draft Rounds (players per team)</Text>
+          <TextInput style={styles.input} value={draftRounds} onChangeText={setDraftRounds}
+            keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
+
           <Text style={styles.label}>Counting Scores Per Team</Text>
           <Text style={styles.hint}>How many of each team's best players count toward the total</Text>
           <TextInput style={styles.input} value={scoringTopN} onChangeText={setScoringTopN}
@@ -139,8 +170,8 @@ export default function CreateLeagueScreen({ navigation }) {
         <>
           <Text style={styles.sectionHeader}>Roster Settings</Text>
 
-          <Text style={styles.label}>Roster Size</Text>
-          <Text style={styles.hint}>Total players each team drafts</Text>
+          <Text style={styles.label}>Roster Size (= draft rounds)</Text>
+          <Text style={styles.hint}>Each team drafts this many players</Text>
           <TextInput style={styles.input} value={rosterSize} onChangeText={setRosterSize}
             keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
 
@@ -149,31 +180,115 @@ export default function CreateLeagueScreen({ navigation }) {
           <TextInput style={styles.input} value={startersCount} onChangeText={setStartersCount}
             keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
 
-          <Text style={styles.sectionHeader}>Points Per Hole</Text>
-          <Text style={styles.hint}>Set point values for each hole outcome</Text>
+          {/* Scoring Presets */}
+          <Text style={styles.sectionHeader}>Scoring Preset</Text>
+          <Text style={styles.hint}>Choose a preset or customize every value below</Text>
 
-          {[
-            { key: 'eagle', label: 'Eagle or Better', icon: '-2+' },
-            { key: 'birdie', label: 'Birdie', icon: '-1' },
-            { key: 'par', label: 'Par', icon: 'E' },
-            { key: 'bogey', label: 'Bogey', icon: '+1' },
-            { key: 'double_bogey', label: 'Double Bogey', icon: '+2' },
-            { key: 'worse', label: 'Triple+', icon: '+3' },
-          ].map(item => (
-            <View key={item.key} style={styles.scoringRow}>
-              <View style={styles.scoringLabel}>
-                <Text style={styles.scoringIcon}>{item.icon}</Text>
-                <Text style={styles.scoringName}>{item.label}</Text>
+          {Object.entries(PRESETS).map(([key, preset]) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.presetCard, activePreset === key && styles.presetCardActive]}
+              onPress={() => selectPreset(key)}
+            >
+              <View style={styles.presetHeader}>
+                <View style={[styles.presetRadio, activePreset === key && styles.presetRadioActive]}>
+                  {activePreset === key && <View style={styles.presetRadioDot} />}
+                </View>
+                <Text style={[styles.presetTitle, activePreset === key && styles.presetTitleActive]}>
+                  {preset.label}
+                </Text>
               </View>
-              <TextInput
-                style={styles.scoringInput}
-                value={String(scoring[item.key])}
-                onChangeText={v => updateScoring(item.key, v)}
-                keyboardType="number-pad"
-              />
-              <Text style={styles.scoringPts}>pts</Text>
-            </View>
+              <Text style={styles.presetDesc}>{preset.desc}</Text>
+            </TouchableOpacity>
           ))}
+
+          {/* Custom toggle */}
+          <TouchableOpacity
+            style={styles.customToggle}
+            onPress={() => setShowCustom(!showCustom)}
+          >
+            <Text style={styles.customToggleText}>
+              {showCustom ? 'Hide Custom Settings' : 'Customize Individual Values'}
+            </Text>
+            <Text style={styles.customToggleArrow}>{showCustom ? '^' : 'v'}</Text>
+          </TouchableOpacity>
+
+          {showCustom && (
+            <>
+              <Text style={styles.sectionHeader}>Hole Scoring</Text>
+              <Text style={styles.hint}>Points awarded per hole outcome</Text>
+
+              {[
+                { key: 'eagle', label: 'Eagle or Better', icon: '-2+' },
+                { key: 'birdie', label: 'Birdie', icon: '-1' },
+                { key: 'par', label: 'Par', icon: 'E' },
+                { key: 'bogey', label: 'Bogey', icon: '+1' },
+                { key: 'double_bogey', label: 'Double Bogey', icon: '+2' },
+                { key: 'worse', label: 'Triple+', icon: '+3' },
+              ].map(item => (
+                <View key={item.key} style={styles.scoringRow}>
+                  <View style={styles.scoringLabel}>
+                    <Text style={styles.scoringIcon}>{item.icon}</Text>
+                    <Text style={styles.scoringName}>{item.label}</Text>
+                  </View>
+                  <TextInput
+                    style={styles.scoringInput}
+                    value={String(scoring[item.key])}
+                    onChangeText={v => updateScoring(item.key, v)}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                  <Text style={styles.scoringPts}>pts</Text>
+                </View>
+              ))}
+
+              <Text style={styles.sectionHeader}>Stat Bonuses</Text>
+              <Text style={styles.hint}>
+                Relative to field average — above avg = positive, below = negative. Updates live during tournaments.
+              </Text>
+
+              {[
+                { key: 'fir_multiplier', label: 'Fairways Hit', desc: 'Multiplier per % above/below field avg' },
+                { key: 'gir_multiplier', label: 'Greens in Reg', desc: 'Multiplier per % above/below field avg' },
+                { key: 'distance_multiplier', label: 'Driving Distance', desc: 'Points per yard above/below field avg' },
+              ].map(item => (
+                <View key={item.key} style={styles.statRow}>
+                  <View style={styles.statLabel}>
+                    <Text style={styles.scoringName}>{item.label}</Text>
+                    <Text style={styles.statDesc}>{item.desc}</Text>
+                  </View>
+                  <TextInput
+                    style={styles.scoringInput}
+                    value={String(scoring[item.key])}
+                    onChangeText={v => updateScoring(item.key, v)}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              ))}
+
+              <Text style={styles.sectionHeader}>Shot Quality</Text>
+              <Text style={styles.hint}>
+                Bonus/penalty per great or poor shot (shots gaining/losing 1+ strokes vs field)
+              </Text>
+
+              {[
+                { key: 'great_shot_bonus', label: 'Great Shot Bonus', desc: 'Per great shot' },
+                { key: 'poor_shot_penalty', label: 'Poor Shot Penalty', desc: 'Per poor shot' },
+              ].map(item => (
+                <View key={item.key} style={styles.statRow}>
+                  <View style={styles.statLabel}>
+                    <Text style={styles.scoringName}>{item.label}</Text>
+                    <Text style={styles.statDesc}>{item.desc}</Text>
+                  </View>
+                  <TextInput
+                    style={styles.scoringInput}
+                    value={String(scoring[item.key])}
+                    onChangeText={v => updateScoring(item.key, v)}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                </View>
+              ))}
+            </>
+          )}
         </>
       )}
 
@@ -212,7 +327,39 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: '#2d5a3d', paddingTop: 20,
   },
 
-  // Scoring config
+  // Scoring presets
+  presetCard: {
+    backgroundColor: '#2d5a3d', borderRadius: 12, padding: 14, marginBottom: 10,
+    borderWidth: 1.5, borderColor: '#2d5a3d',
+  },
+  presetCardActive: {
+    borderColor: '#4a8c5c', backgroundColor: '#1f3d28',
+  },
+  presetHeader: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 6,
+  },
+  presetRadio: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2,
+    borderColor: '#6a7a5b', marginRight: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  presetRadioActive: { borderColor: '#4a8c5c' },
+  presetRadioDot: {
+    width: 10, height: 10, borderRadius: 5, backgroundColor: '#4a8c5c',
+  },
+  presetTitle: { color: '#b0c4a8', fontSize: 16, fontWeight: '600' },
+  presetTitleActive: { color: '#fff' },
+  presetDesc: { color: '#6a7a5b', fontSize: 12, lineHeight: 17, marginLeft: 30 },
+
+  // Custom toggle
+  customToggle: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#2d5a3d', borderRadius: 10, padding: 14, marginTop: 12,
+    borderWidth: 1, borderColor: '#3d6a4d',
+  },
+  customToggleText: { color: '#4a8c5c', fontSize: 14, fontWeight: '600' },
+  customToggleArrow: { color: '#4a8c5c', fontSize: 16 },
+
+  // Hole scoring config
   scoringRow: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 8,
     backgroundColor: '#2d5a3d', borderRadius: 10, padding: 12,
@@ -221,10 +368,18 @@ const styles = StyleSheet.create({
   scoringIcon: { color: '#4a8c5c', fontWeight: 'bold', fontSize: 14, width: 32, textAlign: 'center' },
   scoringName: { color: '#fff', fontSize: 15 },
   scoringInput: {
-    backgroundColor: '#1a472a', borderRadius: 8, width: 56, padding: 8,
+    backgroundColor: '#1a472a', borderRadius: 8, width: 60, padding: 8,
     textAlign: 'center', color: '#fff', fontSize: 16, fontWeight: '600',
   },
   scoringPts: { color: '#8a9a5b', fontSize: 13, marginLeft: 6, width: 24 },
+
+  // Stat bonus config
+  statRow: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: 8,
+    backgroundColor: '#2d5a3d', borderRadius: 10, padding: 12,
+  },
+  statLabel: { flex: 1 },
+  statDesc: { color: '#6a7a5b', fontSize: 11, marginTop: 2 },
 
   button: {
     backgroundColor: '#4a8c5c', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 28,

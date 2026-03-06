@@ -1,9 +1,10 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
@@ -32,9 +33,13 @@ function HomeTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarStyle: { backgroundColor: '#0f2e1a', borderTopColor: '#2d5a3d' },
+        tabBarStyle: {
+          backgroundColor: '#0f2e1a',
+          borderTopColor: '#2d5a3d',
+        },
         tabBarActiveTintColor: '#4a8c5c',
         tabBarInactiveTintColor: '#8a9a5b',
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         headerStyle: { backgroundColor: '#1a472a' },
         headerTintColor: '#fff',
       }}
@@ -42,12 +47,17 @@ function HomeTabs() {
       <Tab.Screen
         name="Leagues"
         component={LeaguesScreen}
-        options={{ tabBarLabel: 'Leagues', headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>🏆</Text>,
+        }}
       />
       <Tab.Screen
         name="Leaderboard"
         component={LeaderboardScreen}
-        options={{ tabBarLabel: 'Leaderboard' }}
+        options={{
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22 }}>📊</Text>,
+        }}
       />
     </Tab.Navigator>
   );
@@ -90,11 +100,13 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationContainer>
-        <StatusBar style="light" />
-        <AppNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <NavigationContainer>
+          <StatusBar style="light" />
+          <AppNavigator />
+        </NavigationContainer>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
