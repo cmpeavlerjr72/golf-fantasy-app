@@ -8,29 +8,29 @@ import * as api from '../services/api';
 const PRESETS = {
   balanced: {
     label: 'Balanced',
-    desc: 'Even mix of scoring and stats. Like a fantasy WR — birdies matter, but ball-striking separates the field.',
+    desc: 'Even mix of scoring and stats (~45%). Like a fantasy WR — birdies matter, but ball-striking separates the field.',
     scoring: {
       eagle: 5, birdie: 3, par: 0.5, bogey: -1, double_bogey: -3, worse: -5,
-      fir_multiplier: 15, gir_multiplier: 20, distance_multiplier: 0.15,
-      great_shot_bonus: 0.75, poor_shot_penalty: -0.75,
+      fir_multiplier: 77, gir_multiplier: 104, distance_multiplier: 0.77,
+      great_shot_bonus: 3.91, poor_shot_penalty: -3.91,
     },
   },
   scoring: {
     label: 'Score Heavy',
-    desc: 'Birdies and eagles are king. Stats are a tiebreaker. The guy at the top of the real leaderboard usually wins.',
+    desc: 'Birdies and eagles are king (~25% stats). The guy at the top of the real leaderboard usually wins.',
     scoring: {
       eagle: 8, birdie: 4, par: 0.5, bogey: -2, double_bogey: -4, worse: -6,
-      fir_multiplier: 8, gir_multiplier: 10, distance_multiplier: 0.05,
-      great_shot_bonus: 0.5, poor_shot_penalty: -0.5,
+      fir_multiplier: 25, gir_multiplier: 34, distance_multiplier: 0.25,
+      great_shot_bonus: 1.3, poor_shot_penalty: -1.3,
     },
   },
   stats: {
     label: 'Stat Heavy',
-    desc: 'Ball-striking and shot quality drive the scores. A player hitting every fairway and green can compete even without many birdies.',
+    desc: 'Ball-striking and shot quality drive the scores (~60%). A player hitting fairways and greens can compete without many birdies.',
     scoring: {
       eagle: 4, birdie: 2, par: 0.5, bogey: -0.5, double_bogey: -2, worse: -3,
-      fir_multiplier: 20, gir_multiplier: 25, distance_multiplier: 0.2,
-      great_shot_bonus: 1.0, poor_shot_penalty: -1.0,
+      fir_multiplier: 115, gir_multiplier: 156, distance_multiplier: 1.16,
+      great_shot_bonus: 5.87, poor_shot_penalty: -5.87,
     },
   },
 };

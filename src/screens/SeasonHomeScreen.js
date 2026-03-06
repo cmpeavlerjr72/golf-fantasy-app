@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+
+const AUTO_REFRESH_MS = 60 * 1000; // Auto-refresh every 60s on This Week tab
 
 export default function SeasonHomeScreen({ route, navigation }) {
   const { leagueId } = route.params;
@@ -17,45 +19,75 @@ export default function SeasonHomeScreen({ route, navigation }) {
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState(null);
+  const [expandedPlayer, setExpandedPlayer] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const autoRefreshTimer = useRef(null);
+  const isFocused = useRef(true);
 
+  // Load league data once on mount
+  useEffect(() => {
+    api.getLeague(leagueId).then(setLeague).catch(() => {});
+  }, [leagueId]);
+
+  // Load tab-specific data when tab changes, but only if we don't already have it
   useFocusEffect(
     useCallback(() => {
-      loadData();
+      isFocused.current = true;
+      loadTabData(tab, false);
+
+      return () => {
+        isFocused.current = false;
+        if (autoRefreshTimer.current) clearInterval(autoRefreshTimer.current);
+      };
     }, [leagueId, tab])
   );
 
-  async function loadData() {
-    setRefreshing(true);
-    try {
-      const promises = [api.getLeague(leagueId)];
-
-      if (tab === 'standings') {
-        promises.push(api.getSeasonStandings(leagueId));
-      } else if (tab === 'week') {
-        promises.push(api.getWeeklyScores(leagueId));
-      } else if (tab === 'roster') {
-        promises.push(api.getLineup(leagueId));
-        promises.push(api.getRoster(leagueId));
-        promises.push(api.getTransactions(leagueId));
-      } else if (tab === 'trades') {
-        promises.push(api.getTrades(leagueId));
-      }
-
-      const results = await Promise.all(promises);
-      setLeague(results[0]);
-
-      if (tab === 'standings') setStandings(results[1]);
-      else if (tab === 'week') setWeeklyScores(results[1]);
-      else if (tab === 'roster') {
-        setLineup(results[1]);
-        setTransactions(results[3] || []);
-      }
-      else if (tab === 'trades') setTrades(results[1] || []);
-    } catch (err) {
-      Alert.alert('Error', err.message);
-    } finally {
-      setRefreshing(false);
+  // Auto-refresh for This Week tab
+  useEffect(() => {
+    if (autoRefreshTimer.current) clearInterval(autoRefreshTimer.current);
+    if (tab === 'week') {
+      autoRefreshTimer.current = setInterval(() => {
+        if (isFocused.current) loadTabData('week', true);
+      }, AUTO_REFRESH_MS);
     }
+    return () => { if (autoRefreshTimer.current) clearInterval(autoRefreshTimer.current); };
+  }, [tab, leagueId]);
+
+  async function loadTabData(activeTab, silent) {
+    if (!silent) setRefreshing(true);
+    try {
+      if (activeTab === 'standings') {
+        const data = await api.getSeasonStandings(leagueId);
+        setStandings(data);
+      } else if (activeTab === 'week') {
+        const data = await api.getWeeklyScores(leagueId);
+        setWeeklyScores(data);
+      } else if (activeTab === 'roster') {
+        const [lineupData, , txData] = await Promise.all([
+          api.getLineup(leagueId),
+          api.getRoster(leagueId),
+          api.getTransactions(leagueId),
+        ]);
+        setLineup(lineupData);
+        setTransactions(txData || []);
+      } else if (activeTab === 'trades') {
+        const data = await api.getTrades(leagueId);
+        setTrades(data || []);
+      }
+      if (initialLoad) setInitialLoad(false);
+    } catch (err) {
+      if (!silent) Alert.alert('Error', err.message);
+    } finally {
+      if (!silent) setRefreshing(false);
+    }
+  }
+
+  function handleTabChange(newTab) {
+    setTab(newTab);
+  }
+
+  async function loadData() {
+    await loadTabData(tab, false);
   }
 
   // --- Roster/Lineup actions ---
@@ -158,7 +190,9 @@ export default function SeasonHomeScreen({ route, navigation }) {
     );
   }
 
-  function renderPlayerCard(p, i) {
+  function renderPlayerCard(p, i, teamId) {
+    const playerKey = `${teamId}-${p.playerName}`;
+    const isPlayerExpanded = expandedPlayer === playerKey;
     const sb = p.stat_breakdown || {};
     const holeRows = [];
     if (p.eagles > 0) holeRows.push({ label: 'Eagles', value: p.eagles, pts: +(p.eagles * (league?.scoringConfig?.eagle || 5)).toFixed(2) });
@@ -169,68 +203,77 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
     return (
       <View key={i} style={styles.playerCard}>
-        {/* Player header */}
-        <View style={styles.playerCardHeader}>
-          <Text style={styles.playerCardName}>{p.playerName}</Text>
+        <TouchableOpacity
+          style={styles.playerCardHeader}
+          onPress={() => setExpandedPlayer(isPlayerExpanded ? null : playerKey)}
+        >
+          <View style={styles.playerCardLeft}>
+            <Text style={styles.playerCardName}>{p.playerName}</Text>
+            <Text style={styles.playerCardThru}>{p.holes_played} holes</Text>
+          </View>
           <Text style={[styles.playerCardTotal, p.points >= 0 ? styles.positive : styles.negative]}>
             {fmtPts(p.points)} pts
           </Text>
-        </View>
-        <Text style={styles.playerCardThru}>{p.holes_played} holes played</Text>
+          <Text style={styles.playerExpandArrow}>{isPlayerExpanded ? '^' : 'v'}</Text>
+        </TouchableOpacity>
 
-        {/* Hole scoring section */}
-        <View style={styles.statSection}>
-          <Text style={styles.statSectionTitle}>Scoring</Text>
-          {holeRows.map(r => renderStatRow(r.label, r.value, r.pts))}
-          {holeRows.length === 0 && (
-            <Text style={styles.noDataText}>No holes scored yet</Text>
-          )}
-          <View style={styles.statTotalRow}>
-            <Text style={styles.statTotalLabel}>Hole Points</Text>
-            <Text style={[styles.statTotalPts, p.hole_points >= 0 ? styles.positive : styles.negative]}>
-              {fmtPts(p.hole_points)}
-            </Text>
-          </View>
-        </View>
+        {isPlayerExpanded && (
+          <View style={styles.playerCardBody}>
+            {/* Hole scoring section */}
+            <View style={styles.statSection}>
+              <Text style={styles.statSectionTitle}>Scoring</Text>
+              {holeRows.map(r => renderStatRow(r.label, r.value, r.pts))}
+              {holeRows.length === 0 && (
+                <Text style={styles.noDataText}>No holes scored yet</Text>
+              )}
+              <View style={styles.statTotalRow}>
+                <Text style={styles.statTotalLabel}>Hole Points</Text>
+                <Text style={[styles.statTotalPts, p.hole_points >= 0 ? styles.positive : styles.negative]}>
+                  {fmtPts(p.hole_points)}
+                </Text>
+              </View>
+            </View>
 
-        {/* Stat bonuses section */}
-        <View style={styles.statSection}>
-          <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
-          {sb.fir && renderStatRow(
-            'Fairways Hit',
-            `${(sb.fir.value * 100).toFixed(1)}% (avg ${(sb.fir.avg * 100).toFixed(1)}%)`,
-            sb.fir.pts
-          )}
-          {sb.gir && renderStatRow(
-            'Greens in Reg',
-            `${(sb.gir.value * 100).toFixed(1)}% (avg ${(sb.gir.avg * 100).toFixed(1)}%)`,
-            sb.gir.pts
-          )}
-          {sb.distance && renderStatRow(
-            'Driving Dist',
-            `${sb.distance.value?.toFixed(1)} yds (avg ${sb.distance.avg?.toFixed(1)})`,
-            sb.distance.pts
-          )}
-          {sb.great_shots && renderStatRow(
-            'Great Shots',
-            `${sb.great_shots.count}`,
-            sb.great_shots.pts
-          )}
-          {sb.poor_shots && renderStatRow(
-            'Poor Shots',
-            `${sb.poor_shots.count}`,
-            sb.poor_shots.pts
-          )}
-          {Object.keys(sb).length === 0 && (
-            <Text style={styles.noDataText}>No stat data yet</Text>
-          )}
-          <View style={styles.statTotalRow}>
-            <Text style={styles.statTotalLabel}>Stat Points</Text>
-            <Text style={[styles.statTotalPts, p.stat_points >= 0 ? styles.positive : styles.negative]}>
-              {fmtPts(p.stat_points)}
-            </Text>
+            {/* Stat bonuses section */}
+            <View style={styles.statSection}>
+              <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
+              {sb.fir && renderStatRow(
+                'Fairways Hit',
+                `${(sb.fir.value * 100).toFixed(1)}% (avg ${(sb.fir.avg * 100).toFixed(1)}%)`,
+                sb.fir.pts
+              )}
+              {sb.gir && renderStatRow(
+                'Greens in Reg',
+                `${(sb.gir.value * 100).toFixed(1)}% (avg ${(sb.gir.avg * 100).toFixed(1)}%)`,
+                sb.gir.pts
+              )}
+              {sb.distance && renderStatRow(
+                'Driving Dist',
+                `${sb.distance.value?.toFixed(1)} yds (avg ${sb.distance.avg?.toFixed(1)})`,
+                sb.distance.pts
+              )}
+              {sb.great_shots && renderStatRow(
+                'Great Shots',
+                `${sb.great_shots.count}`,
+                sb.great_shots.pts
+              )}
+              {sb.poor_shots && renderStatRow(
+                'Poor Shots',
+                `${sb.poor_shots.count}`,
+                sb.poor_shots.pts
+              )}
+              {Object.keys(sb).length === 0 && (
+                <Text style={styles.noDataText}>No stat data yet</Text>
+              )}
+              <View style={styles.statTotalRow}>
+                <Text style={styles.statTotalLabel}>Stat Points</Text>
+                <Text style={[styles.statTotalPts, p.stat_points >= 0 ? styles.positive : styles.negative]}>
+                  {fmtPts(p.stat_points)}
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
+        )}
       </View>
     );
   }
@@ -280,7 +323,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
               {isExpanded && (
                 <View style={styles.playerBreakdown}>
-                  {starters.map((p, i) => renderPlayerCard(p, i))}
+                  {starters.map((p, i) => renderPlayerCard(p, i, item.memberId))}
 
                   {benchPlayers.length > 0 && (
                     <>
@@ -502,7 +545,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
           <TouchableOpacity
             key={t.key}
             style={[styles.tab, tab === t.key && styles.activeTab]}
-            onPress={() => setTab(t.key)}
+            onPress={() => handleTabChange(t.key)}
           >
             <Text style={[styles.tabText, tab === t.key && styles.activeTabText]}>{t.label}</Text>
           </TouchableOpacity>
@@ -571,12 +614,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a472a', borderRadius: 10, marginBottom: 8, overflow: 'hidden',
   },
   playerCardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#2d5a3d', paddingHorizontal: 12, paddingVertical: 10,
   },
+  playerCardLeft: { flex: 1 },
   playerCardName: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  playerCardTotal: { fontSize: 18, fontWeight: 'bold' },
-  playerCardThru: { color: '#6a7a5b', fontSize: 11, paddingHorizontal: 12, paddingTop: 6 },
+  playerCardTotal: { fontSize: 16, fontWeight: 'bold', marginRight: 8 },
+  playerCardThru: { color: '#6a7a5b', fontSize: 11, marginTop: 1 },
+  playerExpandArrow: { color: '#8a9a5b', fontSize: 14, width: 18, textAlign: 'center' },
+  playerCardBody: {},
 
   // Stat sections
   statSection: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
