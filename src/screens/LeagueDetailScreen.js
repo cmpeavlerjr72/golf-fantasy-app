@@ -28,6 +28,29 @@ export default function LeagueDetailScreen({ route, navigation }) {
     }
   }
 
+  async function handleDelete() {
+    Alert.alert(
+      'Delete League',
+      `Are you sure you want to delete "${league?.name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.deleteLeague(leagueId);
+              Alert.alert('Deleted', 'League has been deleted.');
+              navigation.goBack();
+            } catch (err) {
+              Alert.alert('Error', err.message);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function shareInvite() {
     if (!league) return;
     try {
@@ -74,19 +97,27 @@ export default function LeagueDetailScreen({ route, navigation }) {
           </View>
         )}
         ListFooterComponent={
-          league.isOwner && league.status === 'pre_draft' ? (
-            <TouchableOpacity
-              style={[styles.draftButton, league.members.length < 2 && styles.draftButtonDisabled]}
-              onPress={() => navigation.navigate('Draft', { leagueId, leagueType: league.leagueType, tournamentId: league.tournamentId })}
-              disabled={league.members.length < 2}
-            >
-              <Text style={styles.draftButtonText}>
-                {league.members.length < 2 ? 'Need at least 2 teams' : 'Go to Draft'}
-              </Text>
-            </TouchableOpacity>
-          ) : league.status === 'pre_draft' ? (
-            <Text style={styles.waitingText}>Waiting for the league owner to start the draft...</Text>
-          ) : null
+          <>
+            {league.isOwner && league.status === 'pre_draft' ? (
+              <TouchableOpacity
+                style={[styles.draftButton, league.members.length < 2 && styles.draftButtonDisabled]}
+                onPress={() => navigation.navigate('Draft', { leagueId, leagueType: league.leagueType, tournamentId: league.tournamentId })}
+                disabled={league.members.length < 2}
+              >
+                <Text style={styles.draftButtonText}>
+                  {league.members.length < 2 ? 'Need at least 2 teams' : 'Go to Draft'}
+                </Text>
+              </TouchableOpacity>
+            ) : league.status === 'pre_draft' ? (
+              <Text style={styles.waitingText}>Waiting for the league owner to start the draft...</Text>
+            ) : null}
+
+            {league.isOwner && (
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                <Text style={styles.deleteButtonText}>Delete League</Text>
+              </TouchableOpacity>
+            )}
+          </>
         }
       />
     </View>
@@ -118,4 +149,9 @@ const styles = StyleSheet.create({
   draftButtonDisabled: { backgroundColor: '#3a5a3d', opacity: 0.6 },
   draftButtonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   waitingText: { color: '#8a9a5b', textAlign: 'center', padding: 20, fontSize: 15 },
+  deleteButton: {
+    borderRadius: 12, padding: 14, alignItems: 'center', margin: 16, marginTop: 24,
+    borderWidth: 1, borderColor: '#d9534f',
+  },
+  deleteButtonText: { color: '#d9534f', fontSize: 15, fontWeight: '600' },
 });

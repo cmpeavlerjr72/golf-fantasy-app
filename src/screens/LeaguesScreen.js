@@ -11,6 +11,7 @@ export default function LeaguesScreen({ navigation }) {
   const { logout } = useAuth();
   const [leagues, setLeagues] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,13 +57,30 @@ export default function LeaguesScreen({ navigation }) {
     }
   }
 
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      const result = await api.syncAll();
+      Alert.alert('Sync Complete', `Tournament: ${result.tournament || 'N/A'}\nPlayers synced: ${result.statsSynced || 0}`);
+    } catch (err) {
+      Alert.alert('Sync Error', err.message);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Leagues</Text>
-        <TouchableOpacity onPress={logout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={handleSync} disabled={syncing} style={styles.syncButton}>
+            <Text style={styles.syncText}>{syncing ? 'Syncing...' : 'Sync'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -117,6 +135,9 @@ const styles = StyleSheet.create({
     padding: 16, paddingTop: 8,
   },
   headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  syncButton: { backgroundColor: '#2d5a3d', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  syncText: { color: '#4a8c5c', fontSize: 13, fontWeight: '600' },
   logoutText: { color: '#8a9a5b', fontSize: 15 },
   list: { padding: 16, paddingTop: 0 },
   card: {

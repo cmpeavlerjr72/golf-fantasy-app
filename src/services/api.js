@@ -48,6 +48,9 @@ export const joinLeague = (inviteCode, teamName) =>
 
 export const getStandings = (leagueId) => request(`/leagues/${leagueId}/standings`);
 
+export const deleteLeague = (leagueId) =>
+  request(`/leagues/${leagueId}`, { method: 'DELETE' });
+
 // Tournaments
 export const getActiveTournament = () => request('/tournaments/active');
 
@@ -94,3 +97,8 @@ export const acceptTrade = (leagueId, tradeId) =>
 
 export const declineTrade = (leagueId, tradeId) =>
   request(`/trades/${leagueId}/${tradeId}/decline`, { method: 'POST' });
+
+// Sync
+export const syncAll = () => request('/sync', { method: 'POST' });
+
+export const syncStats = () => request('/sync/stats', { method: 'POST' });
