@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 export default function ProposeTradeScreen({ route, navigation }) {
   const { leagueId } = route.params;
@@ -15,7 +16,7 @@ export default function ProposeTradeScreen({ route, navigation }) {
   const [selectedTheirPlayer, setSelectedTheirPlayer] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [step, setStep] = useState(1); // 1: pick my player, 2: pick their team, 3: pick their player
+  const [step, setStep] = useState(1);
 
   useFocusEffect(
     useCallback(() => {
@@ -31,7 +32,6 @@ export default function ProposeTradeScreen({ route, navigation }) {
         api.getLeague(leagueId),
       ]);
       setMyRoster(rosterData.roster || []);
-      // Filter out current user from members list
       const otherMembers = (leagueData.members || []).filter(m => !m.isMe);
       setMembers(otherMembers);
     } catch (err) {
@@ -43,16 +43,11 @@ export default function ProposeTradeScreen({ route, navigation }) {
 
   async function loadTheirRoster(memberId) {
     try {
-      // We need to get all rosters for the league to find their players
-      // The backend roster endpoint returns the current user's roster,
-      // so we'll use the league standings which shows all members
       const leagueData = await api.getLeague(leagueId);
       const member = (leagueData.members || []).find(m => m.id === memberId);
       if (member && member.roster) {
         setTheirRoster(member.roster);
       } else {
-        // Fallback: we may not have roster data on league endpoint
-        // For now show an empty state - the user can still propose
         setTheirRoster([]);
       }
     } catch (err) {
@@ -68,7 +63,6 @@ export default function ProposeTradeScreen({ route, navigation }) {
   function selectMember(member) {
     setSelectedMember(member);
     setStep(3);
-    // Try to load their roster info
     loadTheirRoster(member.id);
   }
 
@@ -102,7 +96,7 @@ export default function ProposeTradeScreen({ route, navigation }) {
       <FlatList
         data={myRoster.filter(p => !p.locked)}
         keyExtractor={(item, i) => `my-${i}`}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.accent} />}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>Select Your Player to Trade</Text>
@@ -149,7 +143,6 @@ export default function ProposeTradeScreen({ route, navigation }) {
   }
 
   function renderStep3() {
-    // If we have their roster from API, show it. Otherwise let user type a name.
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.header}>
@@ -211,31 +204,32 @@ export default function ProposeTradeScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
+  container: { flex: 1, backgroundColor: colors.bg },
   steps: {
     flexDirection: 'row', justifyContent: 'center', paddingVertical: 12, gap: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   stepDot: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: '#2d5a3d',
-    alignItems: 'center', justifyContent: 'center',
+    width: 34, height: 34, borderRadius: 17, backgroundColor: colors.bgElevated,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border,
   },
-  stepActive: { backgroundColor: '#4a8c5c' },
-  stepText: { color: '#6a7a5b', fontWeight: '600' },
+  stepActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  stepText: { color: colors.textMuted, fontWeight: '700' },
   stepTextActive: { color: '#fff' },
   header: { padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  subtitle: { color: '#8a9a5b', fontSize: 14, marginTop: 4 },
+  title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+  subtitle: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
   row: {
-    backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 6,
-    borderRadius: 10, padding: 14,
+    backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 6,
+    borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.border,
   },
-  selectedRow: { borderWidth: 2, borderColor: '#4a8c5c' },
-  name: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  meta: { color: '#8a9a5b', fontSize: 13, marginTop: 2 },
-  empty: { color: '#6a7a5b', textAlign: 'center', marginTop: 40, fontSize: 15 },
+  selectedRow: { borderColor: colors.accent, borderWidth: 2 },
+  name: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  meta: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
+  empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 15 },
   submitBtn: {
-    backgroundColor: '#4a8c5c', margin: 16, padding: 16,
-    borderRadius: 12, alignItems: 'center',
+    backgroundColor: colors.accent, margin: 16, padding: 16,
+    borderRadius: 10, alignItems: 'center',
   },
-  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

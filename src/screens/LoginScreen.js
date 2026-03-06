@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -25,13 +26,16 @@ export default function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.inner}>
-        <Text style={styles.title}>Fantasy Golf</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
+        <View style={styles.logoArea}>
+          <Text style={styles.logoIcon}>&#9971;</Text>
+          <Text style={styles.title}>Fantasy Golf</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
+        </View>
 
         <TextInput
           style={styles.input}
           placeholder="Email"
-          placeholderTextColor="#8a9a5b"
+          placeholderTextColor={colors.textMuted}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -40,7 +44,7 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor="#8a9a5b"
+          placeholderTextColor={colors.textMuted}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -51,7 +55,7 @@ export default function LoginScreen({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.link}>Don't have an account? Sign Up</Text>
+          <Text style={styles.link}>Don't have an account? <Text style={styles.linkAccent}>Sign Up</Text></Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -59,17 +63,21 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
+  container: { flex: 1, backgroundColor: colors.bg },
   inner: { flex: 1, justifyContent: 'center', padding: 24 },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 16, color: '#8a9a5b', textAlign: 'center', marginBottom: 32 },
+  logoArea: { alignItems: 'center', marginBottom: 40 },
+  logoIcon: { fontSize: 48, marginBottom: 8 },
+  title: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, color: colors.textSecondary, marginTop: 4 },
   input: {
-    backgroundColor: '#2d5a3d', borderRadius: 12, padding: 16, fontSize: 16,
-    color: '#fff', marginBottom: 12,
+    backgroundColor: colors.bgElevated, borderRadius: 10, padding: 16, fontSize: 16,
+    color: colors.textPrimary, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
   },
   button: {
-    backgroundColor: '#4a8c5c', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8, marginBottom: 16,
+    backgroundColor: colors.accent, borderRadius: 10, padding: 16, alignItems: 'center',
+    marginTop: 8, marginBottom: 20,
   },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  link: { color: '#8a9a5b', textAlign: 'center', fontSize: 15 },
+  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  link: { color: colors.textSecondary, textAlign: 'center', fontSize: 15 },
+  linkAccent: { color: colors.accent, fontWeight: '600' },
 });

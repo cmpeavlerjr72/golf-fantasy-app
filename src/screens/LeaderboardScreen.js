@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 export default function LeaderboardScreen() {
   const [data, setData] = useState({ tournament: null, leaderboard: [] });
@@ -34,10 +35,10 @@ export default function LeaderboardScreen() {
   }
 
   function scoreColor(score) {
-    if (score === null || score === undefined) return '#6b7a8d';
-    if (score < 0) return '#ff6b6b';
-    if (score > 0) return '#94b8d0';
-    return '#fff';
+    if (score === null || score === undefined) return colors.textMuted;
+    if (score < 0) return colors.negative;
+    if (score > 0) return colors.textSecondary;
+    return colors.textPrimary;
   }
 
   return (
@@ -45,7 +46,7 @@ export default function LeaderboardScreen() {
       <FlatList
         data={data.leaderboard}
         keyExtractor={(item, i) => `${item.playerName}-${i}`}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadLeaderboard} tintColor="#fff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadLeaderboard} tintColor={colors.accent} />}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>
@@ -63,8 +64,8 @@ export default function LeaderboardScreen() {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No tournament data available</Text>
         }
-        renderItem={({ item }) => (
-          <View style={styles.row}>
+        renderItem={({ item, index }) => (
+          <View style={[styles.row, index % 2 === 0 && styles.rowAlt]}>
             <Text style={styles.colPos}>{item.position || '-'}</Text>
             <Text style={styles.colName} numberOfLines={1}>{item.playerName}</Text>
             <Text style={styles.colThru}>{item.thru || '-'}</Text>
@@ -82,21 +83,22 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a1929' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: { padding: 16 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 16 },
+  title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginBottom: 16 },
   columnHeader: {
     flexDirection: 'row', alignItems: 'center', paddingBottom: 8,
-    borderBottomWidth: 1, borderBottomColor: '#1e3a5f',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   row: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16,
-    borderBottomWidth: 1, borderBottomColor: '#1e3a5f',
+    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
   },
-  colPos: { width: 40, color: '#6b7a8d', fontSize: 14, fontWeight: '600' },
-  colName: { flex: 1, color: '#fff', fontSize: 15 },
-  colThru: { width: 40, color: '#6b7a8d', fontSize: 14, textAlign: 'center' },
+  rowAlt: { backgroundColor: colors.bgCard },
+  colPos: { width: 40, color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  colName: { flex: 1, color: colors.textPrimary, fontSize: 15 },
+  colThru: { width: 40, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
   colToday: { width: 50, fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  colTotal: { width: 50, fontSize: 16, fontWeight: 'bold', textAlign: 'right' },
-  emptyText: { color: '#6b7a8d', textAlign: 'center', padding: 40, fontSize: 16 },
+  colTotal: { width: 50, fontSize: 16, fontWeight: '800', textAlign: 'right' },
+  emptyText: { color: colors.textMuted, textAlign: 'center', padding: 40, fontSize: 16 },
 });

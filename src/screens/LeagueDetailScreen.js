@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 export default function LeagueDetailScreen({ route, navigation }) {
   const { leagueId } = route.params;
@@ -71,17 +72,24 @@ export default function LeagueDetailScreen({ route, navigation }) {
       <FlatList
         data={league.members}
         keyExtractor={(item) => item.id.toString()}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadLeague} tintColor="#fff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadLeague} tintColor={colors.accent} />}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>{league.name}</Text>
-            <Text style={styles.subtitle}>Status: {league.status === 'pre_draft' ? 'Waiting for Draft' : league.status}</Text>
-            <Text style={styles.subtitle}>
-              {league.members.length}/{league.maxTeams} teams | {league.draftRounds} rounds
-            </Text>
+            <View style={styles.metaRow}>
+              <View style={[styles.statusBadge, { borderColor: league.status === 'pre_draft' ? colors.gold : colors.active }]}>
+                <Text style={[styles.statusText, { color: league.status === 'pre_draft' ? colors.gold : colors.active }]}>
+                  {league.status === 'pre_draft' ? 'Waiting for Draft' : league.status}
+                </Text>
+              </View>
+              <Text style={styles.meta}>{league.members.length}/{league.maxTeams} teams</Text>
+              <Text style={styles.meta}>{league.draftRounds} rounds</Text>
+            </View>
 
-            <TouchableOpacity style={styles.shareButton} onPress={shareInvite}>
-              <Text style={styles.shareButtonText}>Share Invite Code: {league.inviteCode}</Text>
+            <TouchableOpacity style={styles.shareButton} onPress={shareInvite} activeOpacity={0.7}>
+              <Text style={styles.shareLabel}>Invite Code</Text>
+              <Text style={styles.shareCode}>{league.inviteCode}</Text>
+              <Text style={styles.shareTap}>Tap to share</Text>
             </TouchableOpacity>
 
             <Text style={styles.sectionTitle}>Members</Text>
@@ -89,11 +97,14 @@ export default function LeagueDetailScreen({ route, navigation }) {
         }
         renderItem={({ item, index }) => (
           <View style={styles.memberRow}>
-            <Text style={styles.memberOrder}>{index + 1}</Text>
-            <View>
+            <View style={styles.memberAvatar}>
+              <Text style={styles.memberAvatarText}>{item.teamName.charAt(0)}</Text>
+            </View>
+            <View style={styles.memberInfo}>
               <Text style={styles.memberName}>{item.teamName}</Text>
               <Text style={styles.memberUser}>{item.displayName}</Text>
             </View>
+            <Text style={styles.memberOrder}>#{index + 1}</Text>
           </View>
         )}
         ListFooterComponent={
@@ -125,33 +136,47 @@ export default function LeagueDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
-  loadingText: { color: '#fff', textAlign: 'center', marginTop: 40, fontSize: 16 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  loadingText: { color: colors.textSecondary, textAlign: 'center', marginTop: 40, fontSize: 16 },
   header: { padding: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  subtitle: { color: '#b0c4a8', fontSize: 15, marginBottom: 2 },
+  title: { fontSize: 26, fontWeight: '800', color: colors.textPrimary, marginBottom: 8 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  statusBadge: {
+    borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  statusText: { fontSize: 12, fontWeight: '700' },
+  meta: { color: colors.textSecondary, fontSize: 13 },
   shareButton: {
-    backgroundColor: '#2d5a3d', borderRadius: 12, padding: 14, alignItems: 'center', marginTop: 16, marginBottom: 20,
-    borderWidth: 1, borderColor: '#4a8c5c',
+    backgroundColor: colors.bgCard, borderRadius: 12, padding: 16, alignItems: 'center',
+    marginBottom: 24, borderWidth: 1, borderColor: colors.accent + '44',
   },
-  shareButtonText: { color: '#4a8c5c', fontSize: 15, fontWeight: '600' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#fff', marginBottom: 8 },
+  shareLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  shareCode: { color: colors.accent, fontSize: 28, fontWeight: '800', letterSpacing: 3, marginVertical: 4 },
+  shareTap: { color: colors.textMuted, fontSize: 11 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
   memberRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
-    marginHorizontal: 16, marginBottom: 8, borderRadius: 10, padding: 14,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
+    marginHorizontal: 16, marginBottom: 6, borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
   },
-  memberOrder: { color: '#8a9a5b', fontSize: 18, fontWeight: 'bold', marginRight: 14, width: 24, textAlign: 'center' },
-  memberName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  memberUser: { color: '#8a9a5b', fontSize: 13 },
+  memberAvatar: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accentDim,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  memberAvatarText: { color: colors.accent, fontSize: 16, fontWeight: '700' },
+  memberInfo: { flex: 1 },
+  memberName: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  memberUser: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
+  memberOrder: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
   draftButton: {
-    backgroundColor: '#4a8c5c', borderRadius: 12, padding: 16, alignItems: 'center', margin: 16,
+    backgroundColor: colors.accent, borderRadius: 10, padding: 16, alignItems: 'center', margin: 16,
   },
-  draftButtonDisabled: { backgroundColor: '#3a5a3d', opacity: 0.6 },
-  draftButtonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  waitingText: { color: '#8a9a5b', textAlign: 'center', padding: 20, fontSize: 15 },
+  draftButtonDisabled: { backgroundColor: colors.bgElevated, opacity: 0.5 },
+  draftButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  waitingText: { color: colors.textSecondary, textAlign: 'center', padding: 20, fontSize: 15 },
   deleteButton: {
-    borderRadius: 12, padding: 14, alignItems: 'center', margin: 16, marginTop: 24,
-    borderWidth: 1, borderColor: '#d9534f',
+    borderRadius: 10, padding: 14, alignItems: 'center', margin: 16, marginTop: 8,
+    borderWidth: 1, borderColor: colors.negative + '66',
   },
-  deleteButtonText: { color: '#d9534f', fontSize: 15, fontWeight: '600' },
+  deleteButtonText: { color: colors.negative, fontSize: 15, fontWeight: '600' },
 });

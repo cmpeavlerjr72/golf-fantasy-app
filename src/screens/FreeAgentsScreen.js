@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 export default function FreeAgentsScreen({ route, navigation }) {
   const { leagueId } = route.params;
@@ -73,7 +74,7 @@ export default function FreeAgentsScreen({ route, navigation }) {
       <TextInput
         style={styles.searchInput}
         placeholder="Search players..."
-        placeholderTextColor="#6a7a5b"
+        placeholderTextColor={colors.textMuted}
         value={search}
         onChangeText={onSearch}
         autoCapitalize="none"
@@ -81,7 +82,7 @@ export default function FreeAgentsScreen({ route, navigation }) {
       <FlatList
         data={filtered}
         keyExtractor={(item, i) => `${item.playerName}-${i}`}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadAgents} tintColor="#fff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadAgents} tintColor={colors.accent} />}
         renderItem={({ item }) => (
           <View style={styles.row}>
             <View style={styles.info}>
@@ -116,23 +117,24 @@ export default function FreeAgentsScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
+  container: { flex: 1, backgroundColor: colors.bg },
   searchInput: {
-    backgroundColor: '#2d5a3d', color: '#fff', fontSize: 15,
-    margin: 16, padding: 12, borderRadius: 10,
+    backgroundColor: colors.bgElevated, color: colors.textPrimary, fontSize: 15,
+    margin: 16, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border,
   },
   row: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
     marginHorizontal: 16, marginBottom: 6, borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
   },
   info: { flex: 1 },
-  name: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  meta: { color: '#8a9a5b', fontSize: 12, marginTop: 2 },
-  lockedText: { color: '#6a7a5b', fontSize: 12 },
+  name: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  meta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  lockedText: { color: colors.textMuted, fontSize: 12 },
   addBtn: {
-    backgroundColor: '#4a8c5c', borderRadius: 8,
+    backgroundColor: colors.accent, borderRadius: 8,
     paddingHorizontal: 16, paddingVertical: 8,
   },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  empty: { color: '#6a7a5b', textAlign: 'center', marginTop: 40, fontSize: 15 },
+  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  empty: { color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 15 },
 });

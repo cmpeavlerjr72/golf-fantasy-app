@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 export default function JoinLeagueScreen({ navigation }) {
   const [inviteCode, setInviteCode] = useState('');
@@ -29,6 +30,7 @@ export default function JoinLeagueScreen({ navigation }) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
       <View style={styles.inner}>
         <Text style={styles.title}>Join a League</Text>
+        <Text style={styles.subtitle}>Enter the invite code from your commissioner</Text>
 
         <Text style={styles.label}>Invite Code</Text>
         <TextInput
@@ -36,7 +38,7 @@ export default function JoinLeagueScreen({ navigation }) {
           value={inviteCode}
           onChangeText={setInviteCode}
           placeholder="e.g. A1B2C3D4"
-          placeholderTextColor="#8a9a5b"
+          placeholderTextColor={colors.textMuted}
           autoCapitalize="characters"
         />
 
@@ -46,7 +48,7 @@ export default function JoinLeagueScreen({ navigation }) {
           value={teamName}
           onChangeText={setTeamName}
           placeholder="e.g. Birdie Bunch"
-          placeholderTextColor="#8a9a5b"
+          placeholderTextColor={colors.textMuted}
         />
 
         <TouchableOpacity style={styles.button} onPress={handleJoin} disabled={loading}>
@@ -58,15 +60,17 @@ export default function JoinLeagueScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
+  container: { flex: 1, backgroundColor: colors.bg },
   inner: { flex: 1, justifyContent: 'center', padding: 24 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 24 },
-  label: { color: '#b0c4a8', fontSize: 14, marginBottom: 6, marginTop: 12 },
+  title: { fontSize: 26, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+  subtitle: { color: colors.textSecondary, fontSize: 14, marginBottom: 24 },
+  label: { color: colors.textSecondary, fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 12 },
   input: {
-    backgroundColor: '#2d5a3d', borderRadius: 12, padding: 16, fontSize: 16, color: '#fff',
+    backgroundColor: colors.bgElevated, borderRadius: 10, padding: 16, fontSize: 16,
+    color: colors.textPrimary, borderWidth: 1, borderColor: colors.border,
   },
   button: {
-    backgroundColor: '#4a8c5c', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24,
+    backgroundColor: colors.accent, borderRadius: 10, padding: 16, alignItems: 'center', marginTop: 28,
   },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });

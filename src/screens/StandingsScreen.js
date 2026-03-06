@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 export default function StandingsScreen({ route }) {
   const { leagueId } = route.params;
@@ -36,10 +37,10 @@ export default function StandingsScreen({ route }) {
   }
 
   function scoreColor(score) {
-    if (score === null || score === undefined) return '#8a9a5b';
-    if (score < 0) return '#ff6b6b';
-    if (score > 0) return '#b0c4a8';
-    return '#fff';
+    if (score === null || score === undefined) return colors.textMuted;
+    if (score < 0) return colors.negative;
+    if (score > 0) return colors.textSecondary;
+    return colors.textPrimary;
   }
 
   if (!standings) {
@@ -51,14 +52,14 @@ export default function StandingsScreen({ route }) {
       <FlatList
         data={standings.standings}
         keyExtractor={(item) => item.memberId.toString()}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadStandings} tintColor="#fff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadStandings} tintColor={colors.accent} />}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.title}>{standings.leagueName}</Text>
             {standings.tournament && (
               <Text style={styles.subtitle}>{standings.tournament.name}</Text>
             )}
-            <Text style={styles.subtitle}>Best {standings.scoringTopN} of each team count</Text>
+            <Text style={styles.meta}>Best {standings.scoringTopN} of each team count</Text>
           </View>
         }
         renderItem={({ item, index }) => (
@@ -66,8 +67,11 @@ export default function StandingsScreen({ route }) {
             <TouchableOpacity
               style={[styles.teamRow, expandedTeam === item.memberId && styles.teamRowExpanded]}
               onPress={() => setExpandedTeam(expandedTeam === item.memberId ? null : item.memberId)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.rank}>{index + 1}</Text>
+              <View style={[styles.rankCircle, index === 0 && styles.rankFirst]}>
+                <Text style={[styles.rank, index === 0 && styles.rankFirstText]}>{index + 1}</Text>
+              </View>
               <View style={styles.teamInfo}>
                 <Text style={styles.teamName}>{item.teamName}</Text>
                 <Text style={styles.ownerName}>{item.displayName}</Text>
@@ -108,32 +112,41 @@ export default function StandingsScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
-  loadingText: { color: '#fff', textAlign: 'center', marginTop: 40, fontSize: 16 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  loadingText: { color: colors.textSecondary, textAlign: 'center', marginTop: 40, fontSize: 16 },
   header: { padding: 16, paddingBottom: 8 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  subtitle: { color: '#8a9a5b', fontSize: 14, marginBottom: 2 },
+  title: { fontSize: 24, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+  subtitle: { color: colors.textSecondary, fontSize: 14, marginBottom: 2 },
+  meta: { color: colors.textMuted, fontSize: 13 },
   teamRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
-    marginHorizontal: 16, marginBottom: 6, borderRadius: 12, padding: 16,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
+    marginHorizontal: 16, marginBottom: 6, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
   },
   teamRowExpanded: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 },
-  rank: { color: '#8a9a5b', fontSize: 20, fontWeight: 'bold', width: 30, textAlign: 'center' },
+  rankCircle: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bgElevated,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  rankFirst: { backgroundColor: colors.gold + '33' },
+  rank: { color: colors.textSecondary, fontSize: 15, fontWeight: '700' },
+  rankFirstText: { color: colors.gold },
   teamInfo: { flex: 1, marginLeft: 12 },
-  teamName: { color: '#fff', fontSize: 17, fontWeight: '600' },
-  ownerName: { color: '#8a9a5b', fontSize: 13 },
-  teamScore: { fontSize: 22, fontWeight: 'bold' },
+  teamName: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  ownerName: { color: colors.textMuted, fontSize: 12, marginTop: 1 },
+  teamScore: { fontSize: 22, fontWeight: '800' },
   playersContainer: {
-    backgroundColor: '#244a34', marginHorizontal: 16, marginBottom: 6,
+    backgroundColor: colors.bgCardAlt, marginHorizontal: 16, marginBottom: 6,
     borderBottomLeftRadius: 12, borderBottomRightRadius: 12, padding: 8,
+    borderWidth: 1, borderTopWidth: 0, borderColor: colors.border,
   },
   playerRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 8,
-    borderBottomWidth: 1, borderBottomColor: '#2d5a3d',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  countingPlayer: { backgroundColor: '#2d5a3d', borderRadius: 6 },
-  playerPosition: { color: '#8a9a5b', width: 30, fontSize: 13, textAlign: 'center' },
-  playerName: { flex: 1, color: '#fff', fontSize: 14 },
-  playerThru: { color: '#8a9a5b', fontSize: 13, width: 36, textAlign: 'center' },
-  playerScore: { fontSize: 15, fontWeight: '600', width: 40, textAlign: 'right' },
+  countingPlayer: { backgroundColor: colors.bgHighlight, borderRadius: 6 },
+  playerPosition: { color: colors.textMuted, width: 30, fontSize: 13, textAlign: 'center' },
+  playerName: { flex: 1, color: colors.textPrimary, fontSize: 14 },
+  playerThru: { color: colors.textMuted, fontSize: 13, width: 36, textAlign: 'center' },
+  playerScore: { fontSize: 15, fontWeight: '700', width: 40, textAlign: 'right' },
 });

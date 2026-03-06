@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 const AUTO_REFRESH_MS = 60 * 1000; // Auto-refresh every 60s on This Week tab
 
@@ -183,7 +184,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
       <View style={styles.statRow} key={label}>
         <Text style={styles.statRowLabel}>{label}</Text>
         <Text style={styles.statRowValue}>{value}</Text>
-        <Text style={[styles.statRowPts, { color: color || (pts >= 0 ? '#5cb85c' : '#d9534f') }]}>
+        <Text style={[styles.statRowPts, { color: color || (pts >= 0 ? colors.positive : colors.negative) }]}>
           {fmtPts(pts)}
         </Text>
       </View>
@@ -561,163 +562,172 @@ export default function SeasonHomeScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   // Tabs
-  tabBar: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8 },
+  tabBar: {
+    flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
   tab: {
     flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
-    backgroundColor: '#2d5a3d', marginHorizontal: 3,
+    backgroundColor: colors.bgCard, marginHorizontal: 3,
   },
-  activeTab: { backgroundColor: '#4a8c5c' },
-  tabText: { color: '#8a9a5b', fontSize: 13, fontWeight: '600' },
+  activeTab: { backgroundColor: colors.accent },
+  tabText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
   activeTabText: { color: '#fff' },
 
   // Common
   sectionHeader: { padding: 16 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  subtitle: { color: '#8a9a5b', fontSize: 14, marginTop: 2 },
-  meta: { color: '#8a9a5b', fontSize: 12, marginTop: 2 },
+  title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.3 },
+  subtitle: { color: colors.textSecondary, fontSize: 14, marginTop: 2 },
+  meta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   section: { marginBottom: 16 },
-  sectionTitle: { color: '#b0c4a8', fontSize: 14, fontWeight: '600', marginHorizontal: 16, marginBottom: 8 },
-  emptyText: { color: '#6a7a5b', textAlign: 'center', marginTop: 40, fontSize: 15 },
-  playerName: { flex: 1, color: '#fff', fontSize: 15 },
-  lockedPlayer: { color: '#8a9a5b' },
-  lockedText: { color: '#6a7a5b', fontSize: 12 },
-  positive: { color: '#5cb85c' },
-  negative: { color: '#d9534f' },
+  sectionTitle: { color: colors.textSecondary, fontSize: 13, fontWeight: '700', marginHorizontal: 16, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  emptyText: { color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 15 },
+  playerName: { flex: 1, color: colors.textPrimary, fontSize: 15 },
+  lockedPlayer: { color: colors.textMuted },
+  lockedText: { color: colors.textMuted, fontSize: 12 },
+  positive: { color: colors.positive },
+  negative: { color: colors.negative },
 
   // This Week
   weekCard: {
-    backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 8, borderRadius: 12, overflow: 'hidden',
+    backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 8, borderRadius: 12,
+    overflow: 'hidden', borderWidth: 1, borderColor: colors.border,
   },
   weekCardHeader: {
     flexDirection: 'row', alignItems: 'center', padding: 14,
   },
-  weekRank: { color: '#8a9a5b', fontSize: 20, fontWeight: 'bold', width: 30, textAlign: 'center' },
+  weekRank: { color: colors.textMuted, fontSize: 18, fontWeight: '800', width: 28, textAlign: 'center' },
   weekInfo: { flex: 1, marginLeft: 10 },
-  teamName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  myTeam: { color: '#5cb85c' },
-  weekPointsCol: { alignItems: 'center', marginRight: 8 },
-  weekPoints: { color: '#5cb85c', fontSize: 22, fontWeight: 'bold' },
-  weekPtsLabel: { color: '#8a9a5b', fontSize: 10 },
-  expandArrow: { color: '#8a9a5b', fontSize: 16, width: 20, textAlign: 'center' },
+  teamName: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  myTeam: { color: colors.accent },
+  weekPointsCol: { alignItems: 'flex-end', marginRight: 8 },
+  weekPoints: { color: colors.positive, fontSize: 20, fontWeight: '800' },
+  weekPtsLabel: { color: colors.textMuted, fontSize: 10 },
+  expandArrow: { color: colors.textMuted, fontSize: 14, width: 20, textAlign: 'center' },
 
   // Player breakdown
   playerBreakdown: {
-    backgroundColor: '#1f3d28', paddingHorizontal: 12, paddingBottom: 14,
+    backgroundColor: colors.bgCardAlt, paddingHorizontal: 12, paddingBottom: 14,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
-  breakdownLabel: { color: '#8a9a5b', fontSize: 11, fontWeight: '700', marginBottom: 6, marginTop: 4 },
+  breakdownLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 6, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  // Player card (fantasy football style)
+  // Player card
   playerCard: {
-    backgroundColor: '#1a472a', borderRadius: 10, marginBottom: 8, overflow: 'hidden',
+    backgroundColor: colors.bg, borderRadius: 10, marginBottom: 6, overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.border,
   },
   playerCardHeader: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2d5a3d', paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: colors.bgElevated, paddingHorizontal: 12, paddingVertical: 10,
   },
   playerCardLeft: { flex: 1 },
-  playerCardName: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  playerCardTotal: { fontSize: 16, fontWeight: 'bold', marginRight: 8 },
-  playerCardThru: { color: '#6a7a5b', fontSize: 11, marginTop: 1 },
-  playerExpandArrow: { color: '#8a9a5b', fontSize: 14, width: 18, textAlign: 'center' },
-  playerCardBody: {},
+  playerCardName: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  playerCardTotal: { fontSize: 16, fontWeight: '800', marginRight: 8 },
+  playerCardThru: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
+  playerExpandArrow: { color: colors.textMuted, fontSize: 14, width: 18, textAlign: 'center' },
+  playerCardBody: { backgroundColor: colors.bgCard },
 
   // Stat sections
   statSection: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   statSectionTitle: {
-    color: '#8a9a5b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase',
+    color: colors.textMuted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase',
     letterSpacing: 1, marginBottom: 4,
   },
   statRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 5,
-    borderBottomWidth: 1, borderBottomColor: '#1f3d28',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  statRowLabel: { flex: 1, color: '#b0c4a8', fontSize: 13 },
-  statRowValue: { color: '#8a9a5b', fontSize: 12, marginRight: 12, textAlign: 'right' },
+  statRowLabel: { flex: 1, color: colors.textSecondary, fontSize: 13 },
+  statRowValue: { color: colors.textMuted, fontSize: 12, marginRight: 12, textAlign: 'right' },
   statRowPts: { fontSize: 13, fontWeight: '700', width: 48, textAlign: 'right' },
   statTotalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingTop: 6, marginTop: 2,
+    paddingTop: 6, marginTop: 2, borderTopWidth: 1, borderTopColor: colors.border,
   },
-  statTotalLabel: { color: '#8a9a5b', fontSize: 12, fontWeight: '600' },
-  statTotalPts: { fontSize: 14, fontWeight: 'bold', width: 48, textAlign: 'right' },
-  noDataText: { color: '#4a5a3b', fontSize: 12, fontStyle: 'italic', paddingVertical: 4 },
+  statTotalLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  statTotalPts: { fontSize: 14, fontWeight: '800', width: 48, textAlign: 'right' },
+  noDataText: { color: colors.textMuted, fontSize: 12, fontStyle: 'italic', paddingVertical: 4 },
 
   // Bench in breakdown
   benchCard: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#1a472a', borderRadius: 8, padding: 10, marginBottom: 4,
+    backgroundColor: colors.bg, borderRadius: 8, padding: 10, marginBottom: 4,
+    borderWidth: 1, borderColor: colors.border,
   },
-  benchName: { color: '#6a7a5b', fontSize: 14 },
-  benchPts: { color: '#6a7a5b', fontSize: 12 },
+  benchName: { color: colors.textMuted, fontSize: 14 },
+  benchPts: { color: colors.textMuted, fontSize: 12 },
 
   // Standings
   standingRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
     marginHorizontal: 16, marginBottom: 6, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
   },
-  rank: { color: '#8a9a5b', fontSize: 20, fontWeight: 'bold', width: 30, textAlign: 'center' },
+  rank: { color: colors.textMuted, fontSize: 18, fontWeight: '800', width: 30, textAlign: 'center' },
   standingInfo: { flex: 1, marginLeft: 12 },
-  points: { color: '#5cb85c', fontSize: 22, fontWeight: 'bold' },
+  points: { color: colors.positive, fontSize: 22, fontWeight: '800' },
 
-  // Roster (merged with lineup)
+  // Roster
   rosterHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   rosterRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
     marginHorizontal: 16, marginBottom: 4, borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: colors.border,
   },
   rosterActions: { flexDirection: 'row', gap: 8 },
   freeAgentBtn: {
-    backgroundColor: '#4a8c5c', borderRadius: 8,
+    backgroundColor: colors.accent, borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 8,
   },
-  freeAgentBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  freeAgentBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   moveBtn: {
-    backgroundColor: '#1a472a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
-    borderWidth: 1, borderColor: '#f0ad4e',
+    backgroundColor: colors.bg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.gold,
   },
-  startBtn: { borderColor: '#4a8c5c' },
-  moveBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  startBtn: { borderColor: colors.accent },
+  moveBtnText: { color: colors.textPrimary, fontSize: 12, fontWeight: '600' },
   dropBtn: {
-    backgroundColor: '#1a472a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
-    borderWidth: 1, borderColor: '#d9534f',
+    backgroundColor: colors.bg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.negative + '88',
   },
-  dropBtnText: { color: '#d9534f', fontSize: 12, fontWeight: '600' },
+  dropBtnText: { color: colors.negative, fontSize: 12, fontWeight: '600' },
   transactionsSection: { marginTop: 20, paddingBottom: 30 },
   transactionRow: {
-    backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 4,
-    borderRadius: 8, padding: 10,
+    backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 4,
+    borderRadius: 8, padding: 10, borderWidth: 1, borderColor: colors.border,
   },
-  transactionText: { color: '#fff', fontSize: 13 },
-  transactionType: { color: '#f0ad4e', fontWeight: '600' },
+  transactionText: { color: colors.textPrimary, fontSize: 13 },
+  transactionType: { color: colors.gold, fontWeight: '700' },
 
   // Trades
   tradeRow: {
-    backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 8,
-    borderRadius: 12, padding: 14,
+    backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 8,
+    borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border,
   },
   tradePlayers: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 10,
   },
   tradeSide: { flex: 1 },
-  tradeTeam: { color: '#8a9a5b', fontSize: 12 },
-  tradePlayer: { color: '#fff', fontSize: 15, fontWeight: '600', marginTop: 2 },
-  tradeArrow: { color: '#8a9a5b', fontSize: 16, marginHorizontal: 8 },
+  tradeTeam: { color: colors.textMuted, fontSize: 12 },
+  tradePlayer: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginTop: 2 },
+  tradeArrow: { color: colors.textMuted, fontSize: 16, marginHorizontal: 8 },
   tradeActions: { flexDirection: 'row', gap: 10 },
   acceptBtn: {
-    flex: 1, backgroundColor: '#4a8c5c', borderRadius: 8,
+    flex: 1, backgroundColor: colors.accent, borderRadius: 8,
     paddingVertical: 8, alignItems: 'center',
   },
   declineBtn: {
-    flex: 1, backgroundColor: '#d9534f', borderRadius: 8,
+    flex: 1, backgroundColor: colors.negative, borderRadius: 8,
     paddingVertical: 8, alignItems: 'center',
   },
-  actionBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  tradeStatus: { color: '#8a9a5b', fontSize: 13, textAlign: 'center' },
-  statusAccepted: { color: '#5cb85c' },
-  statusDeclined: { color: '#d9534f' },
+  actionBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  tradeStatus: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
+  statusAccepted: { color: colors.positive },
+  statusDeclined: { color: colors.negative },
 });

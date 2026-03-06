@@ -7,6 +7,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { getToken } from '../services/api';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 const SOCKET_URL = 'https://golf-fantasy-backend.onrender.com';
 
@@ -18,7 +19,7 @@ export default function DraftScreen({ route }) {
   const [draftState, setDraftState] = useState(null);
   const [playerStats, setPlayerStats] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('available'); // 'available' | 'teams'
+  const [tab, setTab] = useState('available');
   const [search, setSearch] = useState('');
 
   const isSeason = leagueType === 'season';
@@ -34,12 +35,10 @@ export default function DraftScreen({ route }) {
   async function loadPlayerStats() {
     try {
       let stats;
-      // Pool leagues: use tournament field. Also check draft state for tournamentId.
       const tId = routeTournamentId || draftState?.tournamentId;
       if (!isSeason && tId) {
         stats = await api.getTournamentField(tId);
       } else if (isSeason) {
-        // Season leagues only show PGA Tour players
         stats = await api.getPlayerStats('pga');
       } else {
         stats = await api.getPlayerStats();
@@ -60,7 +59,6 @@ export default function DraftScreen({ route }) {
 
     socket.on('draft-state', (state) => {
       setDraftState(prev => {
-        // Reload player list if we just got the tournamentId from socket
         if (!prev && state.tournamentId && !routeTournamentId && !isSeason) {
           api.getTournamentField(state.tournamentId).then(setPlayerStats).catch(() => {});
         }
@@ -91,7 +89,7 @@ export default function DraftScreen({ route }) {
   if (loading || !draftState) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#4a8c5c" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Connecting to draft...</Text>
       </View>
     );
@@ -100,7 +98,6 @@ export default function DraftScreen({ route }) {
   const draftedNames = new Set(draftState.picks.map(p => p.playerName.toLowerCase()));
   let availablePlayers = playerStats.filter(p => !draftedNames.has(p.playerName.toLowerCase()));
 
-  // Search filter
   if (search.trim()) {
     const lower = search.toLowerCase();
     availablePlayers = availablePlayers.filter(p => p.playerName.toLowerCase().includes(lower));
@@ -109,8 +106,6 @@ export default function DraftScreen({ route }) {
   const isMyTurn = draftState.members.find(m => m.id === draftState.currentMemberId)?.userId === user.id;
   const currentTeam = draftState.members.find(m => m.id === draftState.currentMemberId);
 
-  const myMember = draftState.members.find(m => m.userId === user.id);
-
   function formatSg(val) {
     if (val == null || isNaN(val)) return '-';
     const num = parseFloat(val);
@@ -118,51 +113,44 @@ export default function DraftScreen({ route }) {
   }
 
   function sgColor(val) {
-    if (val == null || isNaN(val)) return '#8a9a5b';
-    return parseFloat(val) >= 0 ? '#5cb85c' : '#d9534f';
+    if (val == null || isNaN(val)) return colors.textMuted;
+    return parseFloat(val) >= 0 ? colors.positive : colors.negative;
   }
 
   function renderPlayerRow({ item }) {
     return (
       <TouchableOpacity
-        style={styles.playerRow}
+        style={[styles.playerRow, isMyTurn && styles.playerRowActive]}
         onPress={() => isMyTurn && handlePick(item.playerName)}
         disabled={!isMyTurn}
+        activeOpacity={isMyTurn ? 0.6 : 1}
       >
         <View style={styles.playerInfo}>
-          <Text style={styles.playerRank}>#{item.dgRank || item.owgrRank || '-'}</Text>
+          <View style={styles.rankBadge}>
+            <Text style={styles.playerRank}>{item.dgRank || item.owgrRank || '-'}</Text>
+          </View>
           <Text style={styles.playerName} numberOfLines={1}>{item.playerName}</Text>
         </View>
         {isSeason ? (
           <View style={styles.sgRow}>
-            <View style={styles.sgCell}>
-              <Text style={styles.sgLabel}>Total</Text>
-              <Text style={[styles.sgValue, { color: sgColor(item.sgTotal) }]}>{formatSg(item.sgTotal)}</Text>
-            </View>
-            <View style={styles.sgCell}>
-              <Text style={styles.sgLabel}>OTT</Text>
-              <Text style={[styles.sgValue, { color: sgColor(item.sgOtt) }]}>{formatSg(item.sgOtt)}</Text>
-            </View>
-            <View style={styles.sgCell}>
-              <Text style={styles.sgLabel}>APP</Text>
-              <Text style={[styles.sgValue, { color: sgColor(item.sgApp) }]}>{formatSg(item.sgApp)}</Text>
-            </View>
-            <View style={styles.sgCell}>
-              <Text style={styles.sgLabel}>ARG</Text>
-              <Text style={[styles.sgValue, { color: sgColor(item.sgArg) }]}>{formatSg(item.sgArg)}</Text>
-            </View>
-            <View style={styles.sgCell}>
-              <Text style={styles.sgLabel}>Putt</Text>
-              <Text style={[styles.sgValue, { color: sgColor(item.sgPutt) }]}>{formatSg(item.sgPutt)}</Text>
-            </View>
+            {[
+              { label: 'Total', val: item.sgTotal },
+              { label: 'OTT', val: item.sgOtt },
+              { label: 'APP', val: item.sgApp },
+              { label: 'ARG', val: item.sgArg },
+              { label: 'Putt', val: item.sgPutt },
+            ].map(sg => (
+              <View style={styles.sgCell} key={sg.label}>
+                <Text style={styles.sgLabel}>{sg.label}</Text>
+                <Text style={[styles.sgValue, { color: sgColor(sg.val) }]}>{formatSg(sg.val)}</Text>
+              </View>
+            ))}
           </View>
         ) : (
           <>
             <View style={styles.playerStats}>
               <Text style={styles.statLabel}>SG Total</Text>
-              <Text style={[styles.statValue, { color: sgColor(item.sgTotal) }]}>
-                {formatSg(item.sgTotal)}
-              </Text>
+              <Text style={[styles.statValue, { color: sgColor(item.sgTotal) }]}>{formatSg(item.sgTotal)}</Text>
             </View>
             <View style={styles.playerStats}>
               <Text style={styles.statLabel}>Win%</Text>
@@ -183,20 +171,21 @@ export default function DraftScreen({ route }) {
         ) : draftState.status === 'active' ? (
           <Text style={styles.statusText}>Draft complete!</Text>
         ) : isMyTurn ? (
-          <Text style={styles.statusText}>YOUR PICK!</Text>
+          <Text style={styles.statusTextBold}>YOUR PICK!</Text>
         ) : (
-          <Text style={styles.statusText}>{currentTeam?.teamName}'s turn (Pick {draftState.currentPick + 1}/{draftState.totalPicks})</Text>
+          <Text style={styles.statusText}>
+            {currentTeam?.teamName}'s turn
+            <Text style={styles.statusMuted}> (Pick {draftState.currentPick + 1}/{draftState.totalPicks})</Text>
+          </Text>
         )}
       </View>
 
-      {/* Start button for owner */}
       {draftState.status === 'pre_draft' && draftState.members.find(m => m.userId === user.id) && (
         <TouchableOpacity style={styles.startButton} onPress={handleStartDraft}>
           <Text style={styles.startButtonText}>Start Draft</Text>
         </TouchableOpacity>
       )}
 
-      {/* Tab toggle */}
       {draftState.status !== 'pre_draft' && (
         <View style={styles.tabs}>
           <TouchableOpacity
@@ -216,19 +205,17 @@ export default function DraftScreen({ route }) {
         </View>
       )}
 
-      {/* Search bar (available tab only) */}
       {tab === 'available' && draftState.status === 'drafting' && (
         <TextInput
           style={styles.searchInput}
           placeholder="Search players..."
-          placeholderTextColor="#6a7a5b"
+          placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}
           autoCapitalize="none"
         />
       )}
 
-      {/* Available players */}
       {tab === 'available' && draftState.status === 'drafting' && (
         <FlatList
           data={availablePlayers}
@@ -238,7 +225,6 @@ export default function DraftScreen({ route }) {
         />
       )}
 
-      {/* Teams view */}
       {tab === 'teams' && (
         <FlatList
           data={draftState.members}
@@ -248,16 +234,21 @@ export default function DraftScreen({ route }) {
             const isCurrent = member.id === draftState.currentMemberId;
             return (
               <View style={[styles.teamCard, isCurrent && styles.currentTeamCard]}>
-                <Text style={styles.teamName}>
-                  {member.teamName} {member.userId === user.id ? '(You)' : ''}
-                </Text>
+                <View style={styles.teamCardHeader}>
+                  <Text style={styles.teamName}>
+                    {member.teamName} {member.userId === user.id ? '(You)' : ''}
+                  </Text>
+                  <Text style={styles.pickCount}>{memberPicks.length} picks</Text>
+                </View>
                 {memberPicks.length === 0 ? (
                   <Text style={styles.noPicks}>No picks yet</Text>
                 ) : (
                   memberPicks.map((pick, i) => (
-                    <Text key={i} style={styles.pickText}>
-                      R{pick.round} #{pick.pickNumber}: {pick.playerName}
-                    </Text>
+                    <View key={i} style={styles.pickRow}>
+                      <Text style={styles.pickRound}>R{pick.round}</Text>
+                      <Text style={styles.pickText}>{pick.playerName}</Text>
+                      <Text style={styles.pickNum}>#{pick.pickNumber}</Text>
+                    </View>
                   ))
                 )}
               </View>
@@ -270,49 +261,65 @@ export default function DraftScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a472a' },
-  loadingText: { color: '#8a9a5b', marginTop: 12, fontSize: 16 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  loadingText: { color: colors.textSecondary, marginTop: 12, fontSize: 16 },
   statusBar: {
-    backgroundColor: '#2d5a3d', padding: 14, alignItems: 'center',
+    backgroundColor: colors.bgCard, padding: 14, alignItems: 'center',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  myTurnBar: { backgroundColor: '#4a8c5c' },
-  statusText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  myTurnBar: { backgroundColor: colors.accentDark },
+  statusText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  statusTextBold: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 1 },
+  statusMuted: { color: colors.textSecondary, fontWeight: '400' },
   startButton: {
-    backgroundColor: '#4a8c5c', margin: 16, borderRadius: 12, padding: 16, alignItems: 'center',
+    backgroundColor: colors.accent, margin: 16, borderRadius: 10, padding: 16, alignItems: 'center',
   },
-  startButtonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  startButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   tabs: { flexDirection: 'row', marginHorizontal: 16, marginVertical: 8 },
   tab: {
-    flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8, backgroundColor: '#2d5a3d',
-    marginHorizontal: 4,
+    flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8,
+    backgroundColor: colors.bgCard, marginHorizontal: 4, borderWidth: 1, borderColor: colors.border,
   },
-  activeTab: { backgroundColor: '#4a8c5c' },
-  tabText: { color: '#8a9a5b', fontSize: 14, fontWeight: '600' },
+  activeTab: { backgroundColor: colors.accent, borderColor: colors.accent },
+  tabText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
   activeTabText: { color: '#fff' },
   searchInput: {
-    backgroundColor: '#2d5a3d', color: '#fff', fontSize: 15,
+    backgroundColor: colors.bgElevated, color: colors.textPrimary, fontSize: 15,
     marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.border,
   },
   playerRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
-    marginHorizontal: 16, marginBottom: 6, borderRadius: 10, padding: 12,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
+    marginHorizontal: 16, marginBottom: 4, borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: colors.border,
   },
+  playerRowActive: { borderColor: colors.accentDark },
   playerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
-  playerRank: { color: '#8a9a5b', fontSize: 13, width: 36 },
-  playerName: { color: '#fff', fontSize: 14, fontWeight: '500', flexShrink: 1 },
-  playerStats: { alignItems: 'center', marginLeft: 12 },
-  statLabel: { color: '#8a9a5b', fontSize: 10 },
-  statValue: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  sgRow: { flexDirection: 'row', gap: 6 },
-  sgCell: { alignItems: 'center', width: 42 },
-  sgLabel: { color: '#8a9a5b', fontSize: 9 },
-  sgValue: { fontSize: 12, fontWeight: '600' },
-  teamCard: {
-    backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 10, borderRadius: 12, padding: 14,
+  rankBadge: {
+    width: 32, height: 24, borderRadius: 4, backgroundColor: colors.bgElevated,
+    alignItems: 'center', justifyContent: 'center', marginRight: 8,
   },
-  currentTeamCard: { borderWidth: 2, borderColor: '#4a8c5c' },
-  teamName: { color: '#fff', fontSize: 17, fontWeight: '600', marginBottom: 6 },
-  noPicks: { color: '#8a9a5b', fontSize: 13 },
-  pickText: { color: '#b0c4a8', fontSize: 14, marginBottom: 2 },
+  playerRank: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  playerName: { color: colors.textPrimary, fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  playerStats: { alignItems: 'center', marginLeft: 12 },
+  statLabel: { color: colors.textMuted, fontSize: 10 },
+  statValue: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  sgRow: { flexDirection: 'row', gap: 4 },
+  sgCell: { alignItems: 'center', width: 42 },
+  sgLabel: { color: colors.textMuted, fontSize: 9 },
+  sgValue: { fontSize: 12, fontWeight: '700' },
+  teamCard: {
+    backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 8, borderRadius: 12,
+    padding: 14, borderWidth: 1, borderColor: colors.border,
+  },
+  currentTeamCard: { borderColor: colors.accent },
+  teamCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  teamName: { color: colors.textPrimary, fontSize: 16, fontWeight: '700' },
+  pickCount: { color: colors.textMuted, fontSize: 12 },
+  noPicks: { color: colors.textMuted, fontSize: 13 },
+  pickRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  pickRound: { color: colors.accent, fontSize: 12, fontWeight: '700', width: 28 },
+  pickText: { color: colors.textSecondary, fontSize: 14, flex: 1 },
+  pickNum: { color: colors.textMuted, fontSize: 12 },
 });

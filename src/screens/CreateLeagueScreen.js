@@ -4,6 +4,7 @@ import {
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as api from '../services/api';
+import { colors } from '../theme';
 
 const PRESETS = {
   balanced: {
@@ -173,21 +174,21 @@ export default function CreateLeagueScreen({ navigation }) {
 
       <Text style={styles.label}>League Name</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName}
-        placeholder="e.g. Masters 2026" placeholderTextColor="#8a9a5b" />
+        placeholder="e.g. Masters 2026" placeholderTextColor={colors.textMuted} />
 
       <Text style={styles.label}>Your Team Name</Text>
       <TextInput style={styles.input} value={teamName} onChangeText={setTeamName}
-        placeholder="e.g. Eagle Squad" placeholderTextColor="#8a9a5b" />
+        placeholder="e.g. Eagle Squad" placeholderTextColor={colors.textMuted} />
 
       <Text style={styles.label}>Max Teams</Text>
       <TextInput style={styles.input} value={maxTeams} onChangeText={setMaxTeams}
-        keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
+        keyboardType="number-pad" placeholderTextColor={colors.textMuted} />
 
       {leagueType === 'pool' ? (
         <>
           <Text style={styles.sectionHeader}>Tournament</Text>
           {loadingTournaments ? (
-            <ActivityIndicator color="#4a8c5c" style={{ marginVertical: 12 }} />
+            <ActivityIndicator color={colors.accent} style={{ marginVertical: 12 }} />
           ) : tournaments.length === 0 ? (
             <Text style={styles.hint}>No tournaments available. Sync data first.</Text>
           ) : (
@@ -209,12 +210,12 @@ export default function CreateLeagueScreen({ navigation }) {
 
           <Text style={styles.label}>Draft Rounds (players per team)</Text>
           <TextInput style={styles.input} value={draftRounds} onChangeText={setDraftRounds}
-            keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
+            keyboardType="number-pad" placeholderTextColor={colors.textMuted} />
 
           <Text style={styles.label}>Counting Scores Per Team</Text>
           <Text style={styles.hint}>How many of each team's best players count toward the total</Text>
           <TextInput style={styles.input} value={scoringTopN} onChangeText={setScoringTopN}
-            keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
+            keyboardType="number-pad" placeholderTextColor={colors.textMuted} />
         </>
       ) : (
         <>
@@ -223,12 +224,12 @@ export default function CreateLeagueScreen({ navigation }) {
           <Text style={styles.label}>Roster Size (= draft rounds)</Text>
           <Text style={styles.hint}>Each team drafts this many players</Text>
           <TextInput style={styles.input} value={rosterSize} onChangeText={setRosterSize}
-            keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
+            keyboardType="number-pad" placeholderTextColor={colors.textMuted} />
 
           <Text style={styles.label}>Weekly Starters</Text>
           <Text style={styles.hint}>How many players score points each week</Text>
           <TextInput style={styles.input} value={startersCount} onChangeText={setStartersCount}
-            keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
+            keyboardType="number-pad" placeholderTextColor={colors.textMuted} />
 
           {/* Scoring Presets */}
           <Text style={styles.sectionHeader}>Scoring Preset</Text>
@@ -351,104 +352,106 @@ export default function CreateLeagueScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a472a' },
+  container: { flex: 1, backgroundColor: colors.bg },
   inner: { padding: 24, paddingBottom: 60 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  subtitle: { color: '#8a9a5b', fontSize: 15, marginBottom: 20 },
-  backText: { color: '#4a8c5c', fontSize: 15, marginBottom: 16 },
+  title: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+  subtitle: { color: colors.textSecondary, fontSize: 15, marginBottom: 20 },
+  backText: { color: colors.accent, fontSize: 15, marginBottom: 16 },
 
   // Type selection cards
   typeCard: {
-    backgroundColor: '#2d5a3d', borderRadius: 16, padding: 20, marginBottom: 16,
-    borderWidth: 1, borderColor: '#4a8c5c',
+    backgroundColor: colors.bgCard, borderRadius: 16, padding: 20, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.border,
   },
-  typeTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  typeDesc: { color: '#b0c4a8', fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  typeTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginBottom: 8 },
+  typeDesc: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 12 },
   typeBullets: { gap: 4 },
-  bullet: { color: '#8a9a5b', fontSize: 13, paddingLeft: 8 },
+  bullet: { color: colors.textMuted, fontSize: 13, paddingLeft: 8 },
 
   // Form
-  label: { color: '#b0c4a8', fontSize: 14, marginBottom: 6, marginTop: 14 },
-  hint: { color: '#6a7a5b', fontSize: 12, marginBottom: 6 },
+  label: { color: colors.textSecondary, fontSize: 14, marginBottom: 6, marginTop: 14 },
+  hint: { color: colors.textMuted, fontSize: 12, marginBottom: 6 },
   input: {
-    backgroundColor: '#2d5a3d', borderRadius: 12, padding: 16, fontSize: 16, color: '#fff',
+    backgroundColor: colors.bgElevated, borderRadius: 12, padding: 16, fontSize: 16,
+    color: colors.textPrimary, borderWidth: 1, borderColor: colors.border,
   },
   sectionHeader: {
-    fontSize: 18, fontWeight: '600', color: '#fff', marginTop: 24, marginBottom: 4,
-    borderTopWidth: 1, borderTopColor: '#2d5a3d', paddingTop: 20,
+    fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginTop: 24, marginBottom: 4,
+    borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 20,
   },
 
   // Scoring presets
   presetCard: {
-    backgroundColor: '#2d5a3d', borderRadius: 12, padding: 14, marginBottom: 10,
-    borderWidth: 1.5, borderColor: '#2d5a3d',
+    backgroundColor: colors.bgCard, borderRadius: 12, padding: 14, marginBottom: 10,
+    borderWidth: 1.5, borderColor: colors.border,
   },
   presetCardActive: {
-    borderColor: '#4a8c5c', backgroundColor: '#1f3d28',
+    borderColor: colors.accent, backgroundColor: colors.accentDim,
   },
   presetHeader: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 6,
   },
   presetRadio: {
     width: 20, height: 20, borderRadius: 10, borderWidth: 2,
-    borderColor: '#6a7a5b', marginRight: 10, alignItems: 'center', justifyContent: 'center',
+    borderColor: colors.textMuted, marginRight: 10, alignItems: 'center', justifyContent: 'center',
   },
-  presetRadioActive: { borderColor: '#4a8c5c' },
+  presetRadioActive: { borderColor: colors.accent },
   presetRadioDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: '#4a8c5c',
+    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent,
   },
-  presetTitle: { color: '#b0c4a8', fontSize: 16, fontWeight: '600' },
-  presetTitleActive: { color: '#fff' },
-  presetDesc: { color: '#6a7a5b', fontSize: 12, lineHeight: 17, marginLeft: 30 },
+  presetTitle: { color: colors.textSecondary, fontSize: 16, fontWeight: '600' },
+  presetTitleActive: { color: colors.textPrimary },
+  presetDesc: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginLeft: 30 },
 
   // Custom toggle
   customToggle: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#2d5a3d', borderRadius: 10, padding: 14, marginTop: 12,
-    borderWidth: 1, borderColor: '#3d6a4d',
+    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14, marginTop: 12,
+    borderWidth: 1, borderColor: colors.border,
   },
-  customToggleText: { color: '#4a8c5c', fontSize: 14, fontWeight: '600' },
-  customToggleArrow: { color: '#4a8c5c', fontSize: 16 },
+  customToggleText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  customToggleArrow: { color: colors.accent, fontSize: 16 },
 
   // Hole scoring config
   scoringRow: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 8,
-    backgroundColor: '#2d5a3d', borderRadius: 10, padding: 12,
+    backgroundColor: colors.bgCard, borderRadius: 10, padding: 12,
   },
   scoringLabel: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  scoringIcon: { color: '#4a8c5c', fontWeight: 'bold', fontSize: 14, width: 32, textAlign: 'center' },
-  scoringName: { color: '#fff', fontSize: 15 },
+  scoringIcon: { color: colors.accent, fontWeight: 'bold', fontSize: 14, width: 32, textAlign: 'center' },
+  scoringName: { color: colors.textPrimary, fontSize: 15 },
   scoringInput: {
-    backgroundColor: '#1a472a', borderRadius: 8, width: 60, padding: 8,
-    textAlign: 'center', color: '#fff', fontSize: 16, fontWeight: '600',
+    backgroundColor: colors.bgElevated, borderRadius: 8, width: 60, padding: 8,
+    textAlign: 'center', color: colors.textPrimary, fontSize: 16, fontWeight: '600',
+    borderWidth: 1, borderColor: colors.border,
   },
-  scoringPts: { color: '#8a9a5b', fontSize: 13, marginLeft: 6, width: 24 },
+  scoringPts: { color: colors.textMuted, fontSize: 13, marginLeft: 6, width: 24 },
 
   // Stat bonus config
   statRow: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 8,
-    backgroundColor: '#2d5a3d', borderRadius: 10, padding: 12,
+    backgroundColor: colors.bgCard, borderRadius: 10, padding: 12,
   },
   statLabel: { flex: 1 },
-  statDesc: { color: '#6a7a5b', fontSize: 11, marginTop: 2 },
+  statDesc: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
 
   // Tournament chips
   tournamentChip: {
-    backgroundColor: '#2d5a3d', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
-    marginRight: 8, borderWidth: 1.5, borderColor: '#2d5a3d', flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.bgCard, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
+    marginRight: 8, borderWidth: 1.5, borderColor: colors.border, flexDirection: 'row', alignItems: 'center',
   },
   tournamentChipActive: {
-    borderColor: '#4a8c5c', backgroundColor: '#1f3d28',
+    borderColor: colors.accent, backgroundColor: colors.accentDim,
   },
-  tournamentChipText: { color: '#8a9a5b', fontSize: 14, fontWeight: '600' },
-  tournamentChipTextActive: { color: '#fff' },
+  tournamentChipText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  tournamentChipTextActive: { color: colors.textPrimary },
   liveTag: {
-    color: '#d9534f', fontSize: 10, fontWeight: 'bold', marginLeft: 6,
-    backgroundColor: 'rgba(217,83,79,0.15)', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3,
+    color: colors.live, fontSize: 10, fontWeight: 'bold', marginLeft: 6,
+    backgroundColor: 'rgba(248,81,73,0.15)', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3,
   },
 
   button: {
-    backgroundColor: '#4a8c5c', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 28,
+    backgroundColor: colors.accent, borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 28,
   },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
 });
