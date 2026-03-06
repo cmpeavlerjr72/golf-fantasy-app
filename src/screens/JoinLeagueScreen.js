@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as api from '../services/api';
 
@@ -25,7 +26,7 @@ export default function JoinLeagueScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
       <View style={styles.inner}>
         <Text style={styles.title}>Join a League</Text>
 
@@ -52,7 +53,7 @@ export default function JoinLeagueScreen({ navigation }) {
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Join League</Text>}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
+  ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as api from '../services/api';
 
@@ -101,7 +102,7 @@ export default function CreateLeagueScreen({ navigation }) {
   // Step 1: Type selection
   if (!leagueType) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Choose League Type</Text>
 
         <TouchableOpacity style={styles.typeCard} onPress={() => setLeagueType('pool')}>
@@ -133,7 +134,8 @@ export default function CreateLeagueScreen({ navigation }) {
 
   // Step 2: League settings
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
       <TouchableOpacity onPress={() => setLeagueType(null)}>
         <Text style={styles.backText}>{'< Back to league type'}</Text>
       </TouchableOpacity>
@@ -296,6 +298,7 @@ export default function CreateLeagueScreen({ navigation }) {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create League</Text>}
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
