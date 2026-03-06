@@ -1,21 +1,22 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
-  RefreshControl, ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
 
 export default function SeasonHomeScreen({ route, navigation }) {
   const { leagueId } = route.params;
-  const [tab, setTab] = useState('standings');
+  const [tab, setTab] = useState('week');
   const [standings, setStandings] = useState(null);
   const [lineup, setLineup] = useState(null);
   const [league, setLeague] = useState(null);
-  const [roster, setRoster] = useState(null);
+  const [weeklyScores, setWeeklyScores] = useState(null);
   const [trades, setTrades] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedTeam, setExpandedTeam] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -30,9 +31,10 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
       if (tab === 'standings') {
         promises.push(api.getSeasonStandings(leagueId));
-      } else if (tab === 'lineup') {
-        promises.push(api.getLineup(leagueId));
+      } else if (tab === 'week') {
+        promises.push(api.getWeeklyScores(leagueId));
       } else if (tab === 'roster') {
+        promises.push(api.getLineup(leagueId));
         promises.push(api.getRoster(leagueId));
         promises.push(api.getTransactions(leagueId));
       } else if (tab === 'trades') {
@@ -43,8 +45,11 @@ export default function SeasonHomeScreen({ route, navigation }) {
       setLeague(results[0]);
 
       if (tab === 'standings') setStandings(results[1]);
-      else if (tab === 'lineup') setLineup(results[1]);
-      else if (tab === 'roster') { setRoster(results[1]); setTransactions(results[2] || []); }
+      else if (tab === 'week') setWeeklyScores(results[1]);
+      else if (tab === 'roster') {
+        setLineup(results[1]);
+        setTransactions(results[3] || []);
+      }
       else if (tab === 'trades') setTrades(results[1] || []);
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -53,7 +58,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
     }
   }
 
-  // --- Lineup actions ---
+  // --- Roster/Lineup actions ---
   async function movePlayer(playerName, toSlot) {
     if (!lineup) return;
     const starters = lineup.lineup.filter(l => l.slot === 'starter').map(l => l.playerName);
@@ -77,7 +82,6 @@ export default function SeasonHomeScreen({ route, navigation }) {
     }
   }
 
-  // --- Roster actions ---
   function handleDrop(playerName) {
     Alert.alert('Drop Player', `Drop ${playerName} from your roster?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -136,6 +140,135 @@ export default function SeasonHomeScreen({ route, navigation }) {
   }
 
   // --- Renderers ---
+
+  function renderWeeklyScores() {
+    if (!weeklyScores) return null;
+
+    return (
+      <FlatList
+        data={weeklyScores.teams}
+        keyExtractor={(item) => item.memberId.toString()}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
+        ListHeaderComponent={
+          <View style={styles.sectionHeader}>
+            <Text style={styles.title}>This Week</Text>
+            <Text style={styles.subtitle}>
+              {weeklyScores.tournament ? weeklyScores.tournament.name : 'No active tournament'}
+            </Text>
+          </View>
+        }
+        renderItem={({ item, index }) => {
+          const isExpanded = expandedTeam === item.memberId;
+          const starters = item.players.filter(p => p.slot === 'starter');
+          const benchPlayers = item.players.filter(p => p.slot === 'bench');
+
+          return (
+            <View style={styles.weekCard}>
+              <TouchableOpacity
+                style={styles.weekCardHeader}
+                onPress={() => setExpandedTeam(isExpanded ? null : item.memberId)}
+              >
+                <Text style={styles.weekRank}>{index + 1}</Text>
+                <View style={styles.weekInfo}>
+                  <Text style={[styles.teamName, item.isMe && styles.myTeam]}>
+                    {item.teamName} {item.isMe ? '(You)' : ''}
+                  </Text>
+                  <Text style={styles.meta}>
+                    Hole: {item.holePoints} | Stat: {item.statPoints}
+                  </Text>
+                </View>
+                <View style={styles.weekPointsCol}>
+                  <Text style={styles.weekPoints}>{item.totalPoints}</Text>
+                  <Text style={styles.weekPtsLabel}>pts</Text>
+                </View>
+                <Text style={styles.expandArrow}>{isExpanded ? '^' : 'v'}</Text>
+              </TouchableOpacity>
+
+              {isExpanded && (
+                <View style={styles.playerBreakdown}>
+                  {starters.length > 0 && (
+                    <Text style={styles.breakdownLabel}>Starters</Text>
+                  )}
+                  {starters.map((p, i) => (
+                    <View key={i} style={styles.playerBreakdownRow}>
+                      <View style={styles.breakdownInfo}>
+                        <Text style={styles.breakdownName}>{p.playerName}</Text>
+                        <Text style={styles.breakdownMeta}>
+                          {p.holes_played} holes
+                          {p.birdies > 0 ? ` | ${p.birdies} birdies` : ''}
+                          {p.eagles > 0 ? ` | ${p.eagles} eagles` : ''}
+                          {p.bogeys > 0 ? ` | ${p.bogeys} bogeys` : ''}
+                        </Text>
+                      </View>
+                      <View style={styles.breakdownPoints}>
+                        <Text style={[styles.breakdownPts, p.points >= 0 ? styles.positive : styles.negative]}>
+                          {p.points > 0 ? '+' : ''}{p.points}
+                        </Text>
+                        <View style={styles.breakdownSplit}>
+                          <Text style={styles.splitText}>H:{p.hole_points}</Text>
+                          <Text style={styles.splitText}>S:{p.stat_points}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+
+                  {starters.map((p, i) => {
+                    if (!p.stat_breakdown || Object.keys(p.stat_breakdown).length === 0) return null;
+                    return (
+                      <View key={`stat-${i}`} style={styles.statBreakdownBlock}>
+                        <Text style={styles.statBreakdownName}>{p.playerName} — Stat Detail</Text>
+                        {p.stat_breakdown.fir && (
+                          <Text style={styles.statLine}>
+                            FIR: {(p.stat_breakdown.fir.value * 100).toFixed(1)}% (avg {(p.stat_breakdown.fir.avg * 100).toFixed(1)}%) → {p.stat_breakdown.fir.pts > 0 ? '+' : ''}{p.stat_breakdown.fir.pts}
+                          </Text>
+                        )}
+                        {p.stat_breakdown.gir && (
+                          <Text style={styles.statLine}>
+                            GIR: {(p.stat_breakdown.gir.value * 100).toFixed(1)}% (avg {(p.stat_breakdown.gir.avg * 100).toFixed(1)}%) → {p.stat_breakdown.gir.pts > 0 ? '+' : ''}{p.stat_breakdown.gir.pts}
+                          </Text>
+                        )}
+                        {p.stat_breakdown.distance && (
+                          <Text style={styles.statLine}>
+                            Dist: {p.stat_breakdown.distance.value?.toFixed(1)} yds (avg {p.stat_breakdown.distance.avg?.toFixed(1)}) → {p.stat_breakdown.distance.pts > 0 ? '+' : ''}{p.stat_breakdown.distance.pts}
+                          </Text>
+                        )}
+                        {p.stat_breakdown.great_shots && (
+                          <Text style={[styles.statLine, styles.positive]}>
+                            Great shots: {p.stat_breakdown.great_shots.count} → +{p.stat_breakdown.great_shots.pts}
+                          </Text>
+                        )}
+                        {p.stat_breakdown.poor_shots && (
+                          <Text style={[styles.statLine, styles.negative]}>
+                            Poor shots: {p.stat_breakdown.poor_shots.count} → {p.stat_breakdown.poor_shots.pts}
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
+
+                  {benchPlayers.length > 0 && (
+                    <>
+                      <Text style={[styles.breakdownLabel, { marginTop: 10 }]}>Bench</Text>
+                      {benchPlayers.map((p, i) => (
+                        <View key={`bench-${i}`} style={[styles.playerBreakdownRow, styles.benchRow]}>
+                          <Text style={styles.benchName}>{p.playerName}</Text>
+                          <Text style={styles.benchPts}>Not scoring</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        }}
+        ListEmptyComponent={
+          !refreshing && <Text style={styles.emptyText}>No scores yet</Text>
+        }
+      />
+    );
+  }
+
   function renderStandings() {
     if (!standings) return null;
     return (
@@ -165,15 +298,13 @@ export default function SeasonHomeScreen({ route, navigation }) {
     );
   }
 
-  function renderLineup() {
+  function renderRoster() {
     if (!lineup || !league) return null;
 
     const starters = lineup.lineup.filter(l => l.slot === 'starter');
     const bench = lineup.lineup.filter(l => l.slot === 'bench');
-
     const inLineup = new Set(lineup.lineup.map(l => l.playerName.toLowerCase()));
-    const unset = (lineup.roster || [])
-      .filter(name => !inLineup.has(name.toLowerCase()));
+    const unset = (lineup.roster || []).filter(name => !inLineup.has(name.toLowerCase()));
 
     const sections = [
       { title: `Starters (${starters.length}/${league.startersCount})`, data: starters, type: 'starter' },
@@ -190,58 +321,12 @@ export default function SeasonHomeScreen({ route, navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
         ListHeaderComponent={
           <View style={styles.sectionHeader}>
-            <Text style={styles.title}>My Lineup</Text>
-            <Text style={styles.subtitle}>
-              {lineup.tournament ? lineup.tournament.name : 'No active tournament'}
-            </Text>
-          </View>
-        }
-        renderItem={({ item: section }) => (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.data.map((player, i) => {
-              const name = typeof player === 'string' ? player : player.playerName;
-              const locked = player.locked;
-              return (
-                <View key={i} style={styles.lineupRow}>
-                  <Text style={[styles.playerName, locked && styles.lockedPlayer]}>{name}</Text>
-                  {locked ? (
-                    <Text style={styles.lockedText}>Locked</Text>
-                  ) : section.type === 'starter' ? (
-                    <TouchableOpacity style={styles.moveBtn} onPress={() => movePlayer(name, 'bench')}>
-                      <Text style={styles.moveBtnText}>Bench</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={[styles.moveBtn, styles.startBtn]} onPress={() => movePlayer(name, 'starter')}>
-                      <Text style={styles.moveBtnText}>Start</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
-            {section.data.length === 0 && (
-              <Text style={styles.emptyText}>No players</Text>
-            )}
-          </View>
-        )}
-      />
-    );
-  }
-
-  function renderRoster() {
-    const players = roster?.roster || [];
-    return (
-      <FlatList
-        data={players}
-        keyExtractor={(item, i) => `${item.playerName}-${i}`}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
-        ListHeaderComponent={
-          <View style={styles.sectionHeader}>
             <View style={styles.rosterHeaderRow}>
               <View>
                 <Text style={styles.title}>My Roster</Text>
                 <Text style={styles.subtitle}>
-                  {players.length}/{roster?.rosterSize || '?'} players
+                  {lineup.tournament ? lineup.tournament.name : 'No active tournament'}
+                  {'  |  '}{(lineup.roster || []).length}/{league.rosterSize || '?'} players
                 </Text>
               </View>
               <TouchableOpacity
@@ -253,22 +338,38 @@ export default function SeasonHomeScreen({ route, navigation }) {
             </View>
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterInfo}>
-              <Text style={styles.playerName}>{item.playerName}</Text>
-              <Text style={styles.meta}>
-                {item.acquiredVia === 'draft' ? 'Drafted' :
-                 item.acquiredVia === 'trade' ? 'Traded' :
-                 item.acquiredVia === 'add' ? 'Free Agent' : item.acquiredVia}
-              </Text>
-            </View>
-            {item.locked ? (
-              <Text style={styles.lockedText}>Locked</Text>
-            ) : (
-              <TouchableOpacity style={styles.dropBtn} onPress={() => handleDrop(item.playerName)}>
-                <Text style={styles.dropBtnText}>Drop</Text>
-              </TouchableOpacity>
+        renderItem={({ item: section }) => (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.data.map((player, i) => {
+              const name = typeof player === 'string' ? player : player.playerName;
+              const locked = player.locked;
+              return (
+                <View key={i} style={styles.rosterRow}>
+                  <Text style={[styles.playerName, locked && styles.lockedPlayer]}>{name}</Text>
+                  {locked ? (
+                    <Text style={styles.lockedText}>Locked</Text>
+                  ) : (
+                    <View style={styles.rosterActions}>
+                      {section.type === 'starter' ? (
+                        <TouchableOpacity style={styles.moveBtn} onPress={() => movePlayer(name, 'bench')}>
+                          <Text style={styles.moveBtnText}>Bench</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity style={[styles.moveBtn, styles.startBtn]} onPress={() => movePlayer(name, 'starter')}>
+                          <Text style={styles.moveBtnText}>Start</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity style={styles.dropBtn} onPress={() => handleDrop(name)}>
+                        <Text style={styles.dropBtnText}>Drop</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+            {section.data.length === 0 && (
+              <Text style={styles.emptyText}>No players</Text>
             )}
           </View>
         )}
@@ -279,9 +380,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
               {transactions.slice(0, 10).map((t, i) => (
                 <View key={i} style={styles.transactionRow}>
                   <Text style={styles.transactionText}>
-                    <Text style={styles.transactionType}>
-                      {t.type.toUpperCase()}
-                    </Text>
+                    <Text style={styles.transactionType}>{t.type.toUpperCase()}</Text>
                     {'  '}{t.playerName}
                   </Text>
                   <Text style={styles.meta}>{t.teamName}</Text>
@@ -328,16 +427,10 @@ export default function SeasonHomeScreen({ route, navigation }) {
             </View>
             {item.status === 'pending' ? (
               <View style={styles.tradeActions}>
-                <TouchableOpacity
-                  style={styles.acceptBtn}
-                  onPress={() => handleAcceptTrade(item.id)}
-                >
+                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAcceptTrade(item.id)}>
                   <Text style={styles.actionBtnText}>Accept</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.declineBtn}
-                  onPress={() => handleDeclineTrade(item.id)}
-                >
+                <TouchableOpacity style={styles.declineBtn} onPress={() => handleDeclineTrade(item.id)}>
                   <Text style={styles.actionBtnText}>Decline</Text>
                 </TouchableOpacity>
               </View>
@@ -360,15 +453,15 @@ export default function SeasonHomeScreen({ route, navigation }) {
   }
 
   const tabs = [
+    { key: 'week', label: 'This Week' },
     { key: 'standings', label: 'Standings' },
-    { key: 'lineup', label: 'Lineup' },
     { key: 'roster', label: 'Roster' },
     { key: 'trades', label: 'Trades' },
   ];
 
   return (
     <View style={styles.container}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar}>
+      <View style={styles.tabBar}>
         {tabs.map(t => (
           <TouchableOpacity
             key={t.key}
@@ -378,10 +471,10 @@ export default function SeasonHomeScreen({ route, navigation }) {
             <Text style={[styles.tabText, tab === t.key && styles.activeTabText]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
 
+      {tab === 'week' && renderWeeklyScores()}
       {tab === 'standings' && renderStandings()}
-      {tab === 'lineup' && renderLineup()}
       {tab === 'roster' && renderRoster()}
       {tab === 'trades' && renderTrades()}
     </View>
@@ -392,13 +485,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a472a' },
 
   // Tabs
-  tabBar: { flexGrow: 0, paddingHorizontal: 12, paddingVertical: 8 },
+  tabBar: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 8 },
   tab: {
-    paddingVertical: 8, paddingHorizontal: 18, borderRadius: 8,
-    backgroundColor: '#2d5a3d', marginHorizontal: 4,
+    flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
+    backgroundColor: '#2d5a3d', marginHorizontal: 3,
   },
   activeTab: { backgroundColor: '#4a8c5c' },
-  tabText: { color: '#8a9a5b', fontSize: 14, fontWeight: '600' },
+  tabText: { color: '#8a9a5b', fontSize: 13, fontWeight: '600' },
   activeTabText: { color: '#fff' },
 
   // Common
@@ -412,6 +505,53 @@ const styles = StyleSheet.create({
   playerName: { flex: 1, color: '#fff', fontSize: 15 },
   lockedPlayer: { color: '#8a9a5b' },
   lockedText: { color: '#6a7a5b', fontSize: 12 },
+  positive: { color: '#5cb85c' },
+  negative: { color: '#d9534f' },
+
+  // This Week
+  weekCard: {
+    backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 8, borderRadius: 12, overflow: 'hidden',
+  },
+  weekCardHeader: {
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+  },
+  weekRank: { color: '#8a9a5b', fontSize: 20, fontWeight: 'bold', width: 30, textAlign: 'center' },
+  weekInfo: { flex: 1, marginLeft: 10 },
+  teamName: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  myTeam: { color: '#5cb85c' },
+  weekPointsCol: { alignItems: 'center', marginRight: 8 },
+  weekPoints: { color: '#5cb85c', fontSize: 22, fontWeight: 'bold' },
+  weekPtsLabel: { color: '#8a9a5b', fontSize: 10 },
+  expandArrow: { color: '#8a9a5b', fontSize: 16, width: 20, textAlign: 'center' },
+
+  // Player breakdown
+  playerBreakdown: {
+    backgroundColor: '#1f3d28', paddingHorizontal: 14, paddingBottom: 14,
+  },
+  breakdownLabel: { color: '#8a9a5b', fontSize: 11, fontWeight: '700', marginBottom: 6, marginTop: 4 },
+  playerBreakdownRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: '#2d5a3d',
+  },
+  breakdownInfo: { flex: 1 },
+  breakdownName: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  breakdownMeta: { color: '#6a7a5b', fontSize: 11, marginTop: 2 },
+  breakdownPoints: { alignItems: 'flex-end' },
+  breakdownPts: { fontSize: 16, fontWeight: 'bold' },
+  breakdownSplit: { flexDirection: 'row', gap: 6, marginTop: 2 },
+  splitText: { color: '#6a7a5b', fontSize: 10 },
+
+  // Stat breakdown
+  statBreakdownBlock: {
+    backgroundColor: '#1a472a', borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 4,
+  },
+  statBreakdownName: { color: '#8a9a5b', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  statLine: { color: '#b0c4a8', fontSize: 11, marginBottom: 2 },
+
+  // Bench in breakdown
+  benchRow: { borderBottomWidth: 0 },
+  benchName: { color: '#6a7a5b', fontSize: 14 },
+  benchPts: { color: '#6a7a5b', fontSize: 12 },
 
   // Standings
   standingRow: {
@@ -420,40 +560,33 @@ const styles = StyleSheet.create({
   },
   rank: { color: '#8a9a5b', fontSize: 20, fontWeight: 'bold', width: 30, textAlign: 'center' },
   standingInfo: { flex: 1, marginLeft: 12 },
-  teamName: { color: '#fff', fontSize: 16, fontWeight: '600' },
   points: { color: '#5cb85c', fontSize: 22, fontWeight: 'bold' },
 
-  // Lineup
-  lineupRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
-    marginHorizontal: 16, marginBottom: 4, borderRadius: 10, padding: 14,
-  },
-  moveBtn: {
-    backgroundColor: '#1a472a', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6,
-    borderWidth: 1, borderColor: '#f0ad4e',
-  },
-  startBtn: { borderColor: '#4a8c5c' },
-  moveBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-
-  // Roster
+  // Roster (merged with lineup)
   rosterHeaderRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   rosterRow: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
-    marginHorizontal: 16, marginBottom: 6, borderRadius: 10, padding: 14,
+    marginHorizontal: 16, marginBottom: 4, borderRadius: 10, padding: 14,
   },
-  rosterInfo: { flex: 1 },
+  rosterActions: { flexDirection: 'row', gap: 8 },
   freeAgentBtn: {
     backgroundColor: '#4a8c5c', borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 8,
   },
   freeAgentBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  moveBtn: {
+    backgroundColor: '#1a472a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: '#f0ad4e',
+  },
+  startBtn: { borderColor: '#4a8c5c' },
+  moveBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   dropBtn: {
-    backgroundColor: '#1a472a', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6,
+    backgroundColor: '#1a472a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
     borderWidth: 1, borderColor: '#d9534f',
   },
-  dropBtnText: { color: '#d9534f', fontSize: 13, fontWeight: '600' },
+  dropBtnText: { color: '#d9534f', fontSize: 12, fontWeight: '600' },
   transactionsSection: { marginTop: 20, paddingBottom: 30 },
   transactionRow: {
     backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 4,

@@ -73,6 +73,8 @@ export const setLineup = (leagueId, starters, bench) =>
 
 export const getSeasonStandings = (leagueId) => request(`/lineups/${leagueId}/season-standings`);
 
+export const getWeeklyScores = (leagueId) => request(`/lineups/${leagueId}/weekly-scores`);
+
 // Rosters (season leagues)
 export const getRoster = (leagueId) => request(`/rosters/${leagueId}`);
 
