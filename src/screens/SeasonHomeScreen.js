@@ -141,6 +141,100 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
   // --- Renderers ---
 
+  function fmtPts(v) {
+    if (v == null || v === 0) return '0';
+    return (v > 0 ? '+' : '') + v;
+  }
+
+  function renderStatRow(label, value, pts, color) {
+    return (
+      <View style={styles.statRow} key={label}>
+        <Text style={styles.statRowLabel}>{label}</Text>
+        <Text style={styles.statRowValue}>{value}</Text>
+        <Text style={[styles.statRowPts, { color: color || (pts >= 0 ? '#5cb85c' : '#d9534f') }]}>
+          {fmtPts(pts)}
+        </Text>
+      </View>
+    );
+  }
+
+  function renderPlayerCard(p, i) {
+    const sb = p.stat_breakdown || {};
+    const holeRows = [];
+    if (p.eagles > 0) holeRows.push({ label: 'Eagles', value: p.eagles, pts: +(p.eagles * (league?.scoringConfig?.eagle || 5)).toFixed(2) });
+    if (p.birdies > 0) holeRows.push({ label: 'Birdies', value: p.birdies, pts: +(p.birdies * (league?.scoringConfig?.birdie || 3)).toFixed(2) });
+    if (p.pars > 0) holeRows.push({ label: 'Pars', value: p.pars, pts: +(p.pars * (league?.scoringConfig?.par || 0.5)).toFixed(2) });
+    if (p.bogeys > 0) holeRows.push({ label: 'Bogeys', value: p.bogeys, pts: +(p.bogeys * (league?.scoringConfig?.bogey || -1)).toFixed(2) });
+    if (p.doubles_or_worse > 0) holeRows.push({ label: 'Double+', value: p.doubles_or_worse, pts: +(p.doubles_or_worse * (league?.scoringConfig?.double_bogey || -3)).toFixed(2) });
+
+    return (
+      <View key={i} style={styles.playerCard}>
+        {/* Player header */}
+        <View style={styles.playerCardHeader}>
+          <Text style={styles.playerCardName}>{p.playerName}</Text>
+          <Text style={[styles.playerCardTotal, p.points >= 0 ? styles.positive : styles.negative]}>
+            {fmtPts(p.points)} pts
+          </Text>
+        </View>
+        <Text style={styles.playerCardThru}>{p.holes_played} holes played</Text>
+
+        {/* Hole scoring section */}
+        <View style={styles.statSection}>
+          <Text style={styles.statSectionTitle}>Scoring</Text>
+          {holeRows.map(r => renderStatRow(r.label, r.value, r.pts))}
+          {holeRows.length === 0 && (
+            <Text style={styles.noDataText}>No holes scored yet</Text>
+          )}
+          <View style={styles.statTotalRow}>
+            <Text style={styles.statTotalLabel}>Hole Points</Text>
+            <Text style={[styles.statTotalPts, p.hole_points >= 0 ? styles.positive : styles.negative]}>
+              {fmtPts(p.hole_points)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Stat bonuses section */}
+        <View style={styles.statSection}>
+          <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
+          {sb.fir && renderStatRow(
+            'Fairways Hit',
+            `${(sb.fir.value * 100).toFixed(1)}% (avg ${(sb.fir.avg * 100).toFixed(1)}%)`,
+            sb.fir.pts
+          )}
+          {sb.gir && renderStatRow(
+            'Greens in Reg',
+            `${(sb.gir.value * 100).toFixed(1)}% (avg ${(sb.gir.avg * 100).toFixed(1)}%)`,
+            sb.gir.pts
+          )}
+          {sb.distance && renderStatRow(
+            'Driving Dist',
+            `${sb.distance.value?.toFixed(1)} yds (avg ${sb.distance.avg?.toFixed(1)})`,
+            sb.distance.pts
+          )}
+          {sb.great_shots && renderStatRow(
+            'Great Shots',
+            `${sb.great_shots.count}`,
+            sb.great_shots.pts
+          )}
+          {sb.poor_shots && renderStatRow(
+            'Poor Shots',
+            `${sb.poor_shots.count}`,
+            sb.poor_shots.pts
+          )}
+          {Object.keys(sb).length === 0 && (
+            <Text style={styles.noDataText}>No stat data yet</Text>
+          )}
+          <View style={styles.statTotalRow}>
+            <Text style={styles.statTotalLabel}>Stat Points</Text>
+            <Text style={[styles.statTotalPts, p.stat_points >= 0 ? styles.positive : styles.negative]}>
+              {fmtPts(p.stat_points)}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   function renderWeeklyScores() {
     if (!weeklyScores) return null;
 
@@ -186,71 +280,13 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
               {isExpanded && (
                 <View style={styles.playerBreakdown}>
-                  {starters.length > 0 && (
-                    <Text style={styles.breakdownLabel}>Starters</Text>
-                  )}
-                  {starters.map((p, i) => (
-                    <View key={i} style={styles.playerBreakdownRow}>
-                      <View style={styles.breakdownInfo}>
-                        <Text style={styles.breakdownName}>{p.playerName}</Text>
-                        <Text style={styles.breakdownMeta}>
-                          {p.holes_played} holes
-                          {p.birdies > 0 ? ` | ${p.birdies} birdies` : ''}
-                          {p.eagles > 0 ? ` | ${p.eagles} eagles` : ''}
-                          {p.bogeys > 0 ? ` | ${p.bogeys} bogeys` : ''}
-                        </Text>
-                      </View>
-                      <View style={styles.breakdownPoints}>
-                        <Text style={[styles.breakdownPts, p.points >= 0 ? styles.positive : styles.negative]}>
-                          {p.points > 0 ? '+' : ''}{p.points}
-                        </Text>
-                        <View style={styles.breakdownSplit}>
-                          <Text style={styles.splitText}>H:{p.hole_points}</Text>
-                          <Text style={styles.splitText}>S:{p.stat_points}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-
-                  {starters.map((p, i) => {
-                    if (!p.stat_breakdown || Object.keys(p.stat_breakdown).length === 0) return null;
-                    return (
-                      <View key={`stat-${i}`} style={styles.statBreakdownBlock}>
-                        <Text style={styles.statBreakdownName}>{p.playerName} — Stat Detail</Text>
-                        {p.stat_breakdown.fir && (
-                          <Text style={styles.statLine}>
-                            FIR: {(p.stat_breakdown.fir.value * 100).toFixed(1)}% (avg {(p.stat_breakdown.fir.avg * 100).toFixed(1)}%) → {p.stat_breakdown.fir.pts > 0 ? '+' : ''}{p.stat_breakdown.fir.pts}
-                          </Text>
-                        )}
-                        {p.stat_breakdown.gir && (
-                          <Text style={styles.statLine}>
-                            GIR: {(p.stat_breakdown.gir.value * 100).toFixed(1)}% (avg {(p.stat_breakdown.gir.avg * 100).toFixed(1)}%) → {p.stat_breakdown.gir.pts > 0 ? '+' : ''}{p.stat_breakdown.gir.pts}
-                          </Text>
-                        )}
-                        {p.stat_breakdown.distance && (
-                          <Text style={styles.statLine}>
-                            Dist: {p.stat_breakdown.distance.value?.toFixed(1)} yds (avg {p.stat_breakdown.distance.avg?.toFixed(1)}) → {p.stat_breakdown.distance.pts > 0 ? '+' : ''}{p.stat_breakdown.distance.pts}
-                          </Text>
-                        )}
-                        {p.stat_breakdown.great_shots && (
-                          <Text style={[styles.statLine, styles.positive]}>
-                            Great shots: {p.stat_breakdown.great_shots.count} → +{p.stat_breakdown.great_shots.pts}
-                          </Text>
-                        )}
-                        {p.stat_breakdown.poor_shots && (
-                          <Text style={[styles.statLine, styles.negative]}>
-                            Poor shots: {p.stat_breakdown.poor_shots.count} → {p.stat_breakdown.poor_shots.pts}
-                          </Text>
-                        )}
-                      </View>
-                    );
-                  })}
+                  {starters.map((p, i) => renderPlayerCard(p, i))}
 
                   {benchPlayers.length > 0 && (
                     <>
                       <Text style={[styles.breakdownLabel, { marginTop: 10 }]}>Bench</Text>
                       {benchPlayers.map((p, i) => (
-                        <View key={`bench-${i}`} style={[styles.playerBreakdownRow, styles.benchRow]}>
+                        <View key={`bench-${i}`} style={styles.benchCard}>
                           <Text style={styles.benchName}>{p.playerName}</Text>
                           <Text style={styles.benchPts}>Not scoring</Text>
                         </View>
@@ -526,30 +562,48 @@ const styles = StyleSheet.create({
 
   // Player breakdown
   playerBreakdown: {
-    backgroundColor: '#1f3d28', paddingHorizontal: 14, paddingBottom: 14,
+    backgroundColor: '#1f3d28', paddingHorizontal: 12, paddingBottom: 14,
   },
   breakdownLabel: { color: '#8a9a5b', fontSize: 11, fontWeight: '700', marginBottom: 6, marginTop: 4 },
-  playerBreakdownRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
-    borderBottomWidth: 1, borderBottomColor: '#2d5a3d',
-  },
-  breakdownInfo: { flex: 1 },
-  breakdownName: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  breakdownMeta: { color: '#6a7a5b', fontSize: 11, marginTop: 2 },
-  breakdownPoints: { alignItems: 'flex-end' },
-  breakdownPts: { fontSize: 16, fontWeight: 'bold' },
-  breakdownSplit: { flexDirection: 'row', gap: 6, marginTop: 2 },
-  splitText: { color: '#6a7a5b', fontSize: 10 },
 
-  // Stat breakdown
-  statBreakdownBlock: {
-    backgroundColor: '#1a472a', borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 4,
+  // Player card (fantasy football style)
+  playerCard: {
+    backgroundColor: '#1a472a', borderRadius: 10, marginBottom: 8, overflow: 'hidden',
   },
-  statBreakdownName: { color: '#8a9a5b', fontSize: 11, fontWeight: '600', marginBottom: 4 },
-  statLine: { color: '#b0c4a8', fontSize: 11, marginBottom: 2 },
+  playerCardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#2d5a3d', paddingHorizontal: 12, paddingVertical: 10,
+  },
+  playerCardName: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  playerCardTotal: { fontSize: 18, fontWeight: 'bold' },
+  playerCardThru: { color: '#6a7a5b', fontSize: 11, paddingHorizontal: 12, paddingTop: 6 },
+
+  // Stat sections
+  statSection: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
+  statSectionTitle: {
+    color: '#8a9a5b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase',
+    letterSpacing: 1, marginBottom: 4,
+  },
+  statRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 5,
+    borderBottomWidth: 1, borderBottomColor: '#1f3d28',
+  },
+  statRowLabel: { flex: 1, color: '#b0c4a8', fontSize: 13 },
+  statRowValue: { color: '#8a9a5b', fontSize: 12, marginRight: 12, textAlign: 'right' },
+  statRowPts: { fontSize: 13, fontWeight: '700', width: 48, textAlign: 'right' },
+  statTotalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: 6, marginTop: 2,
+  },
+  statTotalLabel: { color: '#8a9a5b', fontSize: 12, fontWeight: '600' },
+  statTotalPts: { fontSize: 14, fontWeight: 'bold', width: 48, textAlign: 'right' },
+  noDataText: { color: '#4a5a3b', fontSize: 12, fontStyle: 'italic', paddingVertical: 4 },
 
   // Bench in breakdown
-  benchRow: { borderBottomWidth: 0 },
+  benchCard: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#1a472a', borderRadius: 8, padding: 10, marginBottom: 4,
+  },
   benchName: { color: '#6a7a5b', fontSize: 14 },
   benchPts: { color: '#6a7a5b', fontSize: 12 },
 
