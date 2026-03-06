@@ -104,3 +104,5 @@ export const declineTrade = (leagueId, tradeId) =>
 export const syncAll = () => request('/sync', { method: 'POST' });
 
 export const syncStats = () => request('/sync/stats', { method: 'POST' });
+
+export const syncDebug = () => request('/sync/debug');

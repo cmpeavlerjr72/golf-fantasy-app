@@ -61,11 +61,28 @@ export default function LeaguesScreen({ navigation }) {
     setSyncing(true);
     try {
       const result = await api.syncAll();
-      Alert.alert('Sync Complete', `Tournament: ${result.tournament || 'N/A'}\nPlayers synced: ${result.statsSynced || 0}`);
+      Alert.alert('Sync Complete', `Tournament: ${result.tournament || 'N/A'}\nPlayer stats: ${result.playersWithStats || 0}\nScores: ${result.playersWithScores || 0}\nHole scores: ${result.holeScoresSynced || 0}\nTournament stats: ${result.tournamentStatsSynced || 0}`);
     } catch (err) {
       Alert.alert('Sync Error', err.message);
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handleDebug() {
+    try {
+      const d = await api.syncDebug();
+      const nm = (d.nameMatches || []).map(m => `${m.lineupName}: ${m.foundInStats ? 'FOUND' : 'MISSING'}`).join('\n');
+      Alert.alert('Debug Info',
+        `Tournament: ${d.tournament?.name || 'none'} (id: ${d.tournament?.id})\n` +
+        `Tournament stats rows: ${d.tournamentStats?.count || 0}\n` +
+        `Field averages: ${d.fieldAverages ? 'YES' : 'NO'}\n` +
+        `Hole scores: ${d.holeScores?.count || 0}\n` +
+        `Starters: ${(d.lineupStarters || []).join(', ') || 'none'}\n\n` +
+        `Name matches:\n${nm || 'none'}`
+      );
+    } catch (err) {
+      Alert.alert('Debug Error', err.message);
     }
   }
 
@@ -74,7 +91,7 @@ export default function LeaguesScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Leagues</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleSync} disabled={syncing} style={styles.syncButton}>
+          <TouchableOpacity onPress={handleSync} onLongPress={handleDebug} disabled={syncing} style={styles.syncButton}>
             <Text style={styles.syncText}>{syncing ? 'Syncing...' : 'Sync'}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={logout}>
