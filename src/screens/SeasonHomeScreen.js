@@ -172,9 +172,8 @@ export default function SeasonHomeScreen({ route, navigation }) {
     const bench = lineup.lineup.filter(l => l.slot === 'bench');
 
     const inLineup = new Set(lineup.lineup.map(l => l.playerName.toLowerCase()));
-    const unset = (league.picks || [])
-      .filter(p => !inLineup.has(p.playerName.toLowerCase()))
-      .map(p => p.playerName);
+    const unset = (lineup.roster || [])
+      .filter(name => !inLineup.has(name.toLowerCase()));
 
     const sections = [
       { title: `Starters (${starters.length}/${league.startersCount})`, data: starters, type: 'starter' },
