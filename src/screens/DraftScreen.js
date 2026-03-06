@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +11,7 @@ import * as api from '../services/api';
 const SOCKET_URL = 'https://golf-fantasy-backend.onrender.com';
 
 export default function DraftScreen({ route }) {
-  const { leagueId } = route.params;
+  const { leagueId, leagueType } = route.params;
   const { user } = useAuth();
   const socketRef = useRef(null);
 
@@ -18,6 +19,9 @@ export default function DraftScreen({ route }) {
   const [playerStats, setPlayerStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('available'); // 'available' | 'teams'
+  const [search, setSearch] = useState('');
+
+  const isSeason = leagueType === 'season';
 
   useEffect(() => {
     loadPlayerStats();
@@ -29,7 +33,8 @@ export default function DraftScreen({ route }) {
 
   async function loadPlayerStats() {
     try {
-      const stats = await api.getPlayerStats();
+      // Season leagues only show PGA Tour players
+      const stats = await api.getPlayerStats(isSeason ? 'pga' : undefined);
       setPlayerStats(stats);
     } catch (err) {
       console.warn('Could not load player stats:', err.message);
@@ -78,12 +83,81 @@ export default function DraftScreen({ route }) {
   }
 
   const draftedNames = new Set(draftState.picks.map(p => p.playerName.toLowerCase()));
-  const availablePlayers = playerStats.filter(p => !draftedNames.has(p.playerName.toLowerCase()));
+  let availablePlayers = playerStats.filter(p => !draftedNames.has(p.playerName.toLowerCase()));
+
+  // Search filter
+  if (search.trim()) {
+    const lower = search.toLowerCase();
+    availablePlayers = availablePlayers.filter(p => p.playerName.toLowerCase().includes(lower));
+  }
 
   const isMyTurn = draftState.members.find(m => m.id === draftState.currentMemberId)?.userId === user.id;
   const currentTeam = draftState.members.find(m => m.id === draftState.currentMemberId);
 
   const myMember = draftState.members.find(m => m.userId === user.id);
+
+  function formatSg(val) {
+    if (val == null || isNaN(val)) return '-';
+    const num = parseFloat(val);
+    return (num >= 0 ? '+' : '') + num.toFixed(2);
+  }
+
+  function sgColor(val) {
+    if (val == null || isNaN(val)) return '#8a9a5b';
+    return parseFloat(val) >= 0 ? '#5cb85c' : '#d9534f';
+  }
+
+  function renderPlayerRow({ item }) {
+    return (
+      <TouchableOpacity
+        style={styles.playerRow}
+        onPress={() => isMyTurn && handlePick(item.playerName)}
+        disabled={!isMyTurn}
+      >
+        <View style={styles.playerInfo}>
+          <Text style={styles.playerRank}>#{item.dgRank || item.owgrRank || '-'}</Text>
+          <Text style={styles.playerName} numberOfLines={1}>{item.playerName}</Text>
+        </View>
+        {isSeason ? (
+          <View style={styles.sgRow}>
+            <View style={styles.sgCell}>
+              <Text style={styles.sgLabel}>Total</Text>
+              <Text style={[styles.sgValue, { color: sgColor(item.sgTotal) }]}>{formatSg(item.sgTotal)}</Text>
+            </View>
+            <View style={styles.sgCell}>
+              <Text style={styles.sgLabel}>OTT</Text>
+              <Text style={[styles.sgValue, { color: sgColor(item.sgOtt) }]}>{formatSg(item.sgOtt)}</Text>
+            </View>
+            <View style={styles.sgCell}>
+              <Text style={styles.sgLabel}>APP</Text>
+              <Text style={[styles.sgValue, { color: sgColor(item.sgApp) }]}>{formatSg(item.sgApp)}</Text>
+            </View>
+            <View style={styles.sgCell}>
+              <Text style={styles.sgLabel}>ARG</Text>
+              <Text style={[styles.sgValue, { color: sgColor(item.sgArg) }]}>{formatSg(item.sgArg)}</Text>
+            </View>
+            <View style={styles.sgCell}>
+              <Text style={styles.sgLabel}>Putt</Text>
+              <Text style={[styles.sgValue, { color: sgColor(item.sgPutt) }]}>{formatSg(item.sgPutt)}</Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={styles.playerStats}>
+              <Text style={styles.statLabel}>SG Total</Text>
+              <Text style={[styles.statValue, { color: sgColor(item.sgTotal) }]}>
+                {formatSg(item.sgTotal)}
+              </Text>
+            </View>
+            <View style={styles.playerStats}>
+              <Text style={styles.statLabel}>Win%</Text>
+              <Text style={styles.statValue}>{item.winPct?.toFixed(1) || '-'}%</Text>
+            </View>
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -127,33 +201,25 @@ export default function DraftScreen({ route }) {
         </View>
       )}
 
+      {/* Search bar (available tab only) */}
+      {tab === 'available' && draftState.status === 'drafting' && (
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search players..."
+          placeholderTextColor="#6a7a5b"
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+        />
+      )}
+
       {/* Available players */}
       {tab === 'available' && draftState.status === 'drafting' && (
         <FlatList
           data={availablePlayers}
           keyExtractor={(item) => item.playerName}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.playerRow}
-              onPress={() => isMyTurn && handlePick(item.playerName)}
-              disabled={!isMyTurn}
-            >
-              <View style={styles.playerInfo}>
-                <Text style={styles.playerRank}>#{item.dgRank || item.owgrRank || '-'}</Text>
-                <Text style={styles.playerName}>{item.playerName}</Text>
-              </View>
-              <View style={styles.playerStats}>
-                <Text style={styles.statLabel}>SG Total</Text>
-                <Text style={[styles.statValue, item.sgTotal > 0 && styles.positive]}>
-                  {item.sgTotal?.toFixed(2) || '-'}
-                </Text>
-              </View>
-              <View style={styles.playerStats}>
-                <Text style={styles.statLabel}>Win%</Text>
-                <Text style={styles.statValue}>{item.winPct?.toFixed(1) || '-'}%</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={renderPlayerRow}
+          keyboardShouldPersistTaps="handled"
         />
       )}
 
@@ -209,17 +275,24 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: '#4a8c5c' },
   tabText: { color: '#8a9a5b', fontSize: 14, fontWeight: '600' },
   activeTabText: { color: '#fff' },
+  searchInput: {
+    backgroundColor: '#2d5a3d', color: '#fff', fontSize: 15,
+    marginHorizontal: 16, marginBottom: 8, padding: 12, borderRadius: 10,
+  },
   playerRow: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#2d5a3d',
     marginHorizontal: 16, marginBottom: 6, borderRadius: 10, padding: 12,
   },
-  playerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  playerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   playerRank: { color: '#8a9a5b', fontSize: 13, width: 36 },
-  playerName: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  playerName: { color: '#fff', fontSize: 14, fontWeight: '500', flexShrink: 1 },
   playerStats: { alignItems: 'center', marginLeft: 12 },
   statLabel: { color: '#8a9a5b', fontSize: 10 },
   statValue: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  positive: { color: '#5cb85c' },
+  sgRow: { flexDirection: 'row', gap: 6 },
+  sgCell: { alignItems: 'center', width: 42 },
+  sgLabel: { color: '#8a9a5b', fontSize: 9 },
+  sgValue: { fontSize: 12, fontWeight: '600' },
   teamCard: {
     backgroundColor: '#2d5a3d', marginHorizontal: 16, marginBottom: 10, borderRadius: 12, padding: 14,
   },

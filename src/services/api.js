@@ -53,7 +53,7 @@ export const getActiveTournament = () => request('/tournaments/active');
 
 export const getLeaderboard = () => request('/tournaments/leaderboard');
 
-export const getPlayerStats = () => request('/tournaments/player-stats');
+export const getPlayerStats = (tour) => request(`/tournaments/player-stats${tour ? `?tour=${tour}` : ''}`);
 
 export const getHoleScores = (playerName) =>
   request(`/tournaments/hole-scores${playerName ? `?player=${encodeURIComponent(playerName)}` : ''}`);

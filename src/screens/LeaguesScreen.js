@@ -44,7 +44,7 @@ export default function LeaguesScreen({ navigation }) {
 
   function handleLeaguePress(league) {
     if (league.status === 'drafting') {
-      navigation.navigate('Draft', { leagueId: league.id });
+      navigation.navigate('Draft', { leagueId: league.id, leagueType: league.leagueType });
     } else if (league.status === 'active') {
       if (league.leagueType === 'season') {
         navigation.navigate('SeasonHome', { leagueId: league.id });
