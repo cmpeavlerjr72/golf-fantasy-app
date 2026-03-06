@@ -84,8 +84,7 @@ export default function StandingsScreen({ route }) {
             {expandedTeam === item.memberId && (
               <View style={styles.playersContainer}>
                 {item.players.map((player, i) => {
-                  const isCounting = i < item.countingPlayers &&
-                    player.scoreToPar !== null &&
+                  const isCounting = player.scoreToPar !== null &&
                     item.players.filter(p => p.scoreToPar !== null)
                       .sort((a, b) => a.scoreToPar - b.scoreToPar)
                       .slice(0, standings.scoringTopN)
