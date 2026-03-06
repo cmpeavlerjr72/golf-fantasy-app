@@ -77,7 +77,7 @@ export default function LeagueDetailScreen({ route, navigation }) {
           league.isOwner && league.status === 'pre_draft' ? (
             <TouchableOpacity
               style={[styles.draftButton, league.members.length < 2 && styles.draftButtonDisabled]}
-              onPress={() => navigation.navigate('Draft', { leagueId, leagueType: league.leagueType })}
+              onPress={() => navigation.navigate('Draft', { leagueId, leagueType: league.leagueType, tournamentId: league.tournamentId })}
               disabled={league.members.length < 2}
             >
               <Text style={styles.draftButtonText}>

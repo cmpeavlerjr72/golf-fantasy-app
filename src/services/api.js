@@ -51,6 +51,10 @@ export const getStandings = (leagueId) => request(`/leagues/${leagueId}/standing
 // Tournaments
 export const getActiveTournament = () => request('/tournaments/active');
 
+export const getTournaments = () => request('/tournaments/list');
+
+export const getTournamentField = (tournamentId) => request(`/tournaments/${tournamentId}/field`);
+
 export const getLeaderboard = () => request('/tournaments/leaderboard');
 
 export const getPlayerStats = (tour) => request(`/tournaments/player-stats${tour ? `?tour=${tour}` : ''}`);

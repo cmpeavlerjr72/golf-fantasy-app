@@ -11,7 +11,7 @@ import * as api from '../services/api';
 const SOCKET_URL = 'https://golf-fantasy-backend.onrender.com';
 
 export default function DraftScreen({ route }) {
-  const { leagueId, leagueType } = route.params;
+  const { leagueId, leagueType, tournamentId: routeTournamentId } = route.params;
   const { user } = useAuth();
   const socketRef = useRef(null);
 
@@ -33,8 +33,17 @@ export default function DraftScreen({ route }) {
 
   async function loadPlayerStats() {
     try {
-      // Season leagues only show PGA Tour players
-      const stats = await api.getPlayerStats(isSeason ? 'pga' : undefined);
+      let stats;
+      // Pool leagues: use tournament field. Also check draft state for tournamentId.
+      const tId = routeTournamentId || draftState?.tournamentId;
+      if (!isSeason && tId) {
+        stats = await api.getTournamentField(tId);
+      } else if (isSeason) {
+        // Season leagues only show PGA Tour players
+        stats = await api.getPlayerStats('pga');
+      } else {
+        stats = await api.getPlayerStats();
+      }
       setPlayerStats(stats);
     } catch (err) {
       console.warn('Could not load player stats:', err.message);
@@ -50,7 +59,13 @@ export default function DraftScreen({ route }) {
     });
 
     socket.on('draft-state', (state) => {
-      setDraftState(state);
+      setDraftState(prev => {
+        // Reload player list if we just got the tournamentId from socket
+        if (!prev && state.tournamentId && !routeTournamentId && !isSeason) {
+          api.getTournamentField(state.tournamentId).then(setPlayerStats).catch(() => {});
+        }
+        return state;
+      });
       setLoading(false);
     });
 

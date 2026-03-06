@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
   ScrollView, KeyboardAvoidingView, Platform,
@@ -43,6 +43,9 @@ export default function CreateLeagueScreen({ navigation }) {
   const [draftRounds, setDraftRounds] = useState('4');
 
   // Pool-specific
+  const [tournaments, setTournaments] = useState([]);
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  const [loadingTournaments, setLoadingTournaments] = useState(false);
   const [scoringTopN, setScoringTopN] = useState('4');
 
   // Season-specific
@@ -53,6 +56,27 @@ export default function CreateLeagueScreen({ navigation }) {
   const [showCustom, setShowCustom] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (leagueType === 'pool' && tournaments.length === 0) {
+      loadTournaments();
+    }
+  }, [leagueType]);
+
+  async function loadTournaments() {
+    setLoadingTournaments(true);
+    try {
+      const data = await api.getTournaments();
+      setTournaments(data || []);
+      // Auto-select the active tournament
+      const active = data?.find(t => t.is_active);
+      if (active) setSelectedTournament(active);
+    } catch (err) {
+      console.warn('Could not load tournaments:', err.message);
+    } finally {
+      setLoadingTournaments(false);
+    }
+  }
 
   function selectPreset(key) {
     setActivePreset(key);
@@ -68,6 +92,7 @@ export default function CreateLeagueScreen({ navigation }) {
   async function handleCreate() {
     if (!name || !teamName) return Alert.alert('Error', 'League name and team name are required');
     if (!leagueType) return Alert.alert('Error', 'Select a league type');
+    if (leagueType === 'pool' && !selectedTournament) return Alert.alert('Error', 'Select a tournament');
 
     setLoading(true);
     try {
@@ -81,6 +106,7 @@ export default function CreateLeagueScreen({ navigation }) {
       if (leagueType === 'pool') {
         params.draftRounds = parseInt(draftRounds);
         params.scoringTopN = parseInt(scoringTopN);
+        params.tournamentId = selectedTournament.id;
       } else {
         params.rosterSize = parseInt(rosterSize);
         params.draftRounds = parseInt(rosterSize);
@@ -159,6 +185,28 @@ export default function CreateLeagueScreen({ navigation }) {
 
       {leagueType === 'pool' ? (
         <>
+          <Text style={styles.sectionHeader}>Tournament</Text>
+          {loadingTournaments ? (
+            <ActivityIndicator color="#4a8c5c" style={{ marginVertical: 12 }} />
+          ) : tournaments.length === 0 ? (
+            <Text style={styles.hint}>No tournaments available. Sync data first.</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+              {tournaments.map(t => (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[styles.tournamentChip, selectedTournament?.id === t.id && styles.tournamentChipActive]}
+                  onPress={() => setSelectedTournament(t)}
+                >
+                  <Text style={[styles.tournamentChipText, selectedTournament?.id === t.id && styles.tournamentChipTextActive]}>
+                    {t.name}
+                  </Text>
+                  {t.is_active && <Text style={styles.liveTag}>LIVE</Text>}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+
           <Text style={styles.label}>Draft Rounds (players per team)</Text>
           <TextInput style={styles.input} value={draftRounds} onChangeText={setDraftRounds}
             keyboardType="number-pad" placeholderTextColor="#8a9a5b" />
@@ -383,6 +431,21 @@ const styles = StyleSheet.create({
   },
   statLabel: { flex: 1 },
   statDesc: { color: '#6a7a5b', fontSize: 11, marginTop: 2 },
+
+  // Tournament chips
+  tournamentChip: {
+    backgroundColor: '#2d5a3d', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
+    marginRight: 8, borderWidth: 1.5, borderColor: '#2d5a3d', flexDirection: 'row', alignItems: 'center',
+  },
+  tournamentChipActive: {
+    borderColor: '#4a8c5c', backgroundColor: '#1f3d28',
+  },
+  tournamentChipText: { color: '#8a9a5b', fontSize: 14, fontWeight: '600' },
+  tournamentChipTextActive: { color: '#fff' },
+  liveTag: {
+    color: '#d9534f', fontSize: 10, fontWeight: 'bold', marginLeft: 6,
+    backgroundColor: 'rgba(217,83,79,0.15)', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3,
+  },
 
   button: {
     backgroundColor: '#4a8c5c', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 28,
