@@ -17,6 +17,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
   const [league, setLeague] = useState(null);
   const [weeklyScores, setWeeklyScores] = useState(null);
   const [trades, setTrades] = useState([]);
+  const [history, setHistory] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState(null);
@@ -71,6 +72,9 @@ export default function SeasonHomeScreen({ route, navigation }) {
         ]);
         setLineup(lineupData);
         setTransactions(txData || []);
+      } else if (activeTab === 'history') {
+        const data = await api.getWeeklyHistory(leagueId);
+        setHistory(data || []);
       } else if (activeTab === 'trades') {
         const data = await api.getTrades(leagueId);
         setTrades(data || []);
@@ -473,6 +477,44 @@ export default function SeasonHomeScreen({ route, navigation }) {
     );
   }
 
+  function renderHistory() {
+    if (!history) return null;
+    return (
+      <FlatList
+        data={history}
+        keyExtractor={(item) => item.tournamentId.toString()}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
+        ListHeaderComponent={
+          <View style={styles.sectionHeader}>
+            <Text style={styles.title}>Previous Weeks</Text>
+            <Text style={styles.subtitle}>Finalized tournament results</Text>
+          </View>
+        }
+        renderItem={({ item: week }) => (
+          <View style={styles.historyWeek}>
+            <Text style={styles.historyTournamentName}>{week.tournamentName}</Text>
+            {week.results.map((r, i) => (
+              <View key={r.memberId} style={styles.historyRow}>
+                <Text style={styles.historyRank}>{r.position}</Text>
+                <View style={styles.historyInfo}>
+                  <Text style={styles.teamName}>{r.teamName}</Text>
+                  <Text style={styles.meta}>{r.weeklyPoints.toFixed(1)} fantasy pts</Text>
+                </View>
+                <View style={styles.historyPointsCol}>
+                  <Text style={styles.historySeasonPts}>{r.seasonPoints}</Text>
+                  <Text style={styles.weekPtsLabel}>season pts</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+        ListEmptyComponent={
+          !refreshing && <Text style={styles.emptyText}>No finalized weeks yet</Text>
+        }
+      />
+    );
+  }
+
   function renderTrades() {
     return (
       <FlatList
@@ -535,6 +577,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
   const tabs = [
     { key: 'week', label: 'This Week' },
     { key: 'standings', label: 'Standings' },
+    { key: 'history', label: 'History' },
     { key: 'roster', label: 'Roster' },
     { key: 'trades', label: 'Trades' },
   ];
@@ -555,6 +598,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
       {tab === 'week' && renderWeeklyScores()}
       {tab === 'standings' && renderStandings()}
+      {tab === 'history' && renderHistory()}
       {tab === 'roster' && renderRoster()}
       {tab === 'trades' && renderTrades()}
     </View>
@@ -730,4 +774,22 @@ const styles = StyleSheet.create({
   tradeStatus: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
   statusAccepted: { color: colors.positive },
   statusDeclined: { color: colors.negative },
+
+  // History
+  historyWeek: {
+    marginHorizontal: 16, marginBottom: 16,
+  },
+  historyTournamentName: {
+    color: colors.accent, fontSize: 16, fontWeight: '700', marginBottom: 8,
+    paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  historyRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard,
+    marginBottom: 4, borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  historyRank: { color: colors.textMuted, fontSize: 16, fontWeight: '800', width: 28, textAlign: 'center' },
+  historyInfo: { flex: 1, marginLeft: 10 },
+  historyPointsCol: { alignItems: 'flex-end' },
+  historySeasonPts: { color: colors.gold, fontSize: 18, fontWeight: '800' },
 });
