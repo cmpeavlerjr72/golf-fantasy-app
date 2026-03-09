@@ -19,6 +19,7 @@ import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import SeasonHomeScreen from './src/screens/SeasonHomeScreen';
 import FreeAgentsScreen from './src/screens/FreeAgentsScreen';
 import ProposeTradeScreen from './src/screens/ProposeTradeScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -57,6 +58,14 @@ function HomeTabs() {
         component={LeaderboardScreen}
         options={{
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 22 }}>📊</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>⚙️</Text>,
         }}
       />
     </Tab.Navigator>

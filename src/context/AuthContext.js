@@ -48,8 +48,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  async function deleteAccount() {
+    await api.deleteAccount();
+    api.setToken(null);
+    await SecureStore.deleteItemAsync('authToken');
+    setUser(null);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

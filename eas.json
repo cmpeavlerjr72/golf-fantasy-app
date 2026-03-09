@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 15.0.0"
+    "version": ">= 15.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -23,11 +24,12 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "APPLE_ID_HERE",
-        "ascAppId": "ASC_APP_ID_HERE",
-        "appleTeamId": "APPLE_TEAM_ID_HERE"
+        "appleId": "cmpeavlerjr@gmail.com",
+        "ascAppId": "6760315596",
+        "appleTeamId": "TA3V7YBQ78"
       },
       "android": {
+        "serviceAccountKeyPath": "../assets/fairwayfantasy-a04225a741d9.json",
         "track": "internal",
         "releaseStatus": "draft"
       }

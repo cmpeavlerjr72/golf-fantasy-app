@@ -9,7 +9,7 @@ import * as api from '../services/api';
 import { colors } from '../theme';
 
 export default function LeaguesScreen({ navigation }) {
-  const { logout } = useAuth();
+  const { user } = useAuth();
   const [leagues, setLeagues] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -97,9 +97,6 @@ export default function LeaguesScreen({ navigation }) {
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={handleSync} onLongPress={handleDebug} disabled={syncing} style={styles.syncButton}>
             <Text style={styles.syncText}>{syncing ? 'Syncing...' : 'Sync'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,0 +1,39 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "Fairway Fantasy",
+        "subtitle": "Fantasy Golf with Friends",
+        "description": "Fairway Fantasy is the ultimate fantasy golf experience. Build your league, draft real PGA golfers, set weekly lineups, and compete head-to-head with friends all season long.\n\nCreate & Join Leagues\nStart your own fantasy golf league or join one with an invite code. Choose between Draft leagues for tournament-style play or Season leagues for a full-season experience.\n\nLive Draft Room\nDraft your squad in real time with friends. Our live draft room keeps everyone in sync with real-time picks, player stats, and countdown timers.\n\nManage Your Roster\nSet your weekly lineup, pick up free agents, and propose trades to stay competitive. Every roster move matters when you're chasing the top of the standings.\n\nReal PGA Tournament Data\nLive leaderboards, player stats, and scoring powered by professional golf data. Watch your fantasy squad perform in real tournaments as they happen.\n\nSeason-Long Competition\nTrack standings, weekly scores, and head-to-head matchups throughout the entire golf season. See who really knows golf.",
+        "keywords": "fantasy golf,fantasy sports,PGA,golf league,draft,fantasy league,golf pool,friends,competition,roster",
+        "promotionalText": "Create leagues, draft golfers, and compete with friends in fantasy golf.",
+        "marketingUrl": "https://golf-fantasy-backend.onrender.com",
+        "supportUrl": "https://golf-fantasy-backend.onrender.com/support",
+        "privacyPolicyUrl": "https://golf-fantasy-backend.onrender.com/privacy"
+      }
+    },
+    "categories": ["SPORTS", "ENTERTAINMENT"],
+    "copyright": "2026 MVPeav LLC",
+    "reviewDetails": {
+      "contactFirstName": "Christopher",
+      "contactLastName": "Peavler",
+      "contactEmail": "mvpeav@gmail.com",
+      "contactPhone": "+17068307145",
+      "notes": "This is a free fantasy sports app. No real money, gambling, or in-app purchases. Users create leagues with friends and compete based on real PGA tournament results. Requires account creation (email + username). Backend API hosted on Render."
+    }
+  },
+  "android": {
+    "info": {
+      "en-US": {
+        "title": "Fairway Fantasy",
+        "shortDescription": "Create leagues, draft golfers, and compete with friends in fantasy golf.",
+        "fullDescription": "Fairway Fantasy is the ultimate fantasy golf experience. Build your league, draft real PGA golfers, set weekly lineups, and compete head-to-head with friends all season long.\n\nCreate & Join Leagues\nStart your own fantasy golf league or join one with an invite code. Choose between Draft leagues for tournament-style play or Season leagues for a full-season experience.\n\nLive Draft Room\nDraft your squad in real time with friends. Our live draft room keeps everyone in sync with real-time picks, player stats, and countdown timers.\n\nManage Your Roster\nSet your weekly lineup, pick up free agents, and propose trades to stay competitive. Every roster move matters when you're chasing the top of the standings.\n\nReal PGA Tournament Data\nLive leaderboards, player stats, and scoring powered by professional golf data. Watch your fantasy squad perform in real tournaments as they happen.\n\nSeason-Long Competition\nTrack standings, weekly scores, and head-to-head matchups throughout the entire golf season. See who really knows golf."
+      }
+    },
+    "category": "GAME_SPORTS",
+    "contactEmail": "mvpeav@gmail.com",
+    "contactWebsite": "https://golf-fantasy-backend.onrender.com",
+    "privacyPolicy": "https://golf-fantasy-backend.onrender.com/privacy"
+  }
+}

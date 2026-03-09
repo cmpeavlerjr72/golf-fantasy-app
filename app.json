@@ -21,8 +21,10 @@
           "NSAllowsArbitraryLoads": false
         },
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -46,6 +48,11 @@
     "plugins": [
       "expo-secure-store",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "732b8271-5a36-419d-b171-b3b88a67cb08"
+      }
+    }
   }
 }

@@ -35,6 +35,8 @@ export const register = (email, password, displayName) =>
 
 export const getMe = () => request('/auth/me');
 
+export const deleteAccount = () => request('/auth/account', { method: 'DELETE' });
+
 // Leagues
 export const getLeagues = () => request('/leagues');
 
