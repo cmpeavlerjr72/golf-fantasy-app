@@ -477,12 +477,63 @@ export default function SeasonHomeScreen({ route, navigation }) {
     );
   }
 
+  function renderHistoryPlayerCard(p, i, teamKey) {
+    const playerKey = `hist-${teamKey}-${p.playerName}`;
+    const isPlayerExpanded = expandedPlayer === playerKey;
+    const holeRows = [];
+    if (p.eagles > 0) holeRows.push({ label: 'Eagles', value: p.eagles, pts: +(p.eagles * (league?.scoringConfig?.eagle || 5)).toFixed(2) });
+    if (p.birdies > 0) holeRows.push({ label: 'Birdies', value: p.birdies, pts: +(p.birdies * (league?.scoringConfig?.birdie || 3)).toFixed(2) });
+    if (p.pars > 0) holeRows.push({ label: 'Pars', value: p.pars, pts: +(p.pars * (league?.scoringConfig?.par || 0.5)).toFixed(2) });
+    if (p.bogeys > 0) holeRows.push({ label: 'Bogeys', value: p.bogeys, pts: +(p.bogeys * (league?.scoringConfig?.bogey || -1)).toFixed(2) });
+    if (p.doubles_or_worse > 0) holeRows.push({ label: 'Double+', value: p.doubles_or_worse, pts: +(p.doubles_or_worse * (league?.scoringConfig?.double_bogey || -3)).toFixed(2) });
+
+    return (
+      <View key={i} style={styles.playerCard}>
+        <TouchableOpacity
+          style={styles.playerCardHeader}
+          onPress={() => setExpandedPlayer(isPlayerExpanded ? null : playerKey)}
+        >
+          <View style={styles.playerCardLeft}>
+            <Text style={styles.playerCardName}>{p.playerName}</Text>
+            <Text style={styles.playerCardThru}>{p.holes_played} holes</Text>
+          </View>
+          <Text style={[styles.playerCardTotal, p.points >= 0 ? styles.positive : styles.negative]}>
+            {fmtPts(p.points)} pts
+          </Text>
+          <Text style={styles.playerExpandArrow}>{isPlayerExpanded ? '^' : 'v'}</Text>
+        </TouchableOpacity>
+
+        {isPlayerExpanded && (
+          <View style={styles.playerCardBody}>
+            <View style={styles.statSection}>
+              <Text style={styles.statSectionTitle}>Scoring</Text>
+              {holeRows.map(r => renderStatRow(r.label, r.value, r.pts))}
+              {holeRows.length === 0 && (
+                <Text style={styles.noDataText}>No holes scored</Text>
+              )}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+
   function renderHistory() {
     if (!history) return null;
+
+    // Flatten into a list: tournament headers + team rows
+    const flatData = [];
+    for (const week of history) {
+      flatData.push({ type: 'header', tournamentName: week.tournamentName, key: `h-${week.tournamentId}` });
+      for (const r of week.results) {
+        flatData.push({ type: 'team', ...r, tournamentId: week.tournamentId, key: `t-${week.tournamentId}-${r.memberId}` });
+      }
+    }
+
     return (
       <FlatList
-        data={history}
-        keyExtractor={(item) => item.tournamentId.toString()}
+        data={flatData}
+        keyExtractor={(item) => item.key}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
         ListHeaderComponent={
           <View style={styles.sectionHeader}>
@@ -490,24 +541,50 @@ export default function SeasonHomeScreen({ route, navigation }) {
             <Text style={styles.subtitle}>Finalized tournament results</Text>
           </View>
         }
-        renderItem={({ item: week }) => (
-          <View style={styles.historyWeek}>
-            <Text style={styles.historyTournamentName}>{week.tournamentName}</Text>
-            {week.results.map((r, i) => (
-              <View key={r.memberId} style={styles.historyRow}>
-                <Text style={styles.historyRank}>{r.position}</Text>
-                <View style={styles.historyInfo}>
-                  <Text style={styles.teamName}>{r.teamName}</Text>
-                  <Text style={styles.meta}>{r.weeklyPoints.toFixed(1)} fantasy pts</Text>
+        renderItem={({ item }) => {
+          if (item.type === 'header') {
+            return (
+              <View style={styles.historyWeek}>
+                <Text style={styles.historyTournamentName}>{item.tournamentName}</Text>
+              </View>
+            );
+          }
+
+          const teamKey = `${item.tournamentId}-${item.memberId}`;
+          const isExpanded = expandedTeam === teamKey;
+
+          return (
+            <View style={[styles.weekCard, { marginHorizontal: 16, marginBottom: 6 }]}>
+              <TouchableOpacity
+                style={styles.weekCardHeader}
+                onPress={() => setExpandedTeam(isExpanded ? null : teamKey)}
+              >
+                <Text style={styles.weekRank}>{item.position}</Text>
+                <View style={styles.weekInfo}>
+                  <Text style={styles.teamName}>{item.teamName}</Text>
+                  <Text style={styles.meta}>{item.weeklyPoints.toFixed(1)} fantasy pts</Text>
                 </View>
                 <View style={styles.historyPointsCol}>
-                  <Text style={styles.historySeasonPts}>{r.seasonPoints}</Text>
+                  <Text style={styles.historySeasonPts}>{item.seasonPoints}</Text>
                   <Text style={styles.weekPtsLabel}>season pts</Text>
                 </View>
-              </View>
-            ))}
-          </View>
-        )}
+                <Text style={styles.expandArrow}>{isExpanded ? '^' : 'v'}</Text>
+              </TouchableOpacity>
+
+              {isExpanded && item.players && item.players.length > 0 && (
+                <View style={styles.playerBreakdown}>
+                  {item.players.map((p, i) => renderHistoryPlayerCard(p, i, teamKey))}
+                </View>
+              )}
+
+              {isExpanded && (!item.players || item.players.length === 0) && (
+                <View style={styles.playerBreakdown}>
+                  <Text style={styles.noDataText}>No lineup set for this tournament</Text>
+                </View>
+              )}
+            </View>
+          );
+        }}
         ListEmptyComponent={
           !refreshing && <Text style={styles.emptyText}>No finalized weeks yet</Text>
         }
