@@ -206,6 +206,8 @@ export default function SeasonHomeScreen({ route, navigation }) {
     if (p.bogeys > 0) holeRows.push({ label: 'Bogeys', value: p.bogeys, pts: +(p.bogeys * (league?.scoringConfig?.bogey || -1)).toFixed(2) });
     if (p.doubles_or_worse > 0) holeRows.push({ label: 'Double+', value: p.doubles_or_worse, pts: +(p.doubles_or_worse * (league?.scoringConfig?.double_bogey || -3)).toFixed(2) });
 
+    const positionPts = p.position_points || 0;
+
     return (
       <View key={i} style={styles.playerCard}>
         <TouchableOpacity
@@ -214,7 +216,9 @@ export default function SeasonHomeScreen({ route, navigation }) {
         >
           <View style={styles.playerCardLeft}>
             <Text style={styles.playerCardName}>{p.playerName}</Text>
-            <Text style={styles.playerCardThru}>{p.holes_played} holes</Text>
+            <Text style={styles.playerCardThru}>
+              {p.position ? `Pos: ${p.position}` : ''}{p.position ? '  |  ' : ''}{p.holes_played} holes
+            </Text>
           </View>
           <Text style={[styles.playerCardTotal, p.points >= 0 ? styles.positive : styles.negative]}>
             {fmtPts(p.points)} pts
@@ -224,6 +228,23 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
         {isPlayerExpanded && (
           <View style={styles.playerCardBody}>
+            {/* Position points section */}
+            <View style={styles.statSection}>
+              <Text style={styles.statSectionTitle}>Leaderboard Position</Text>
+              {renderStatRow(
+                p.position ? `Position: ${p.position}` : 'No position yet',
+                '',
+                positionPts,
+                positionPts > 0 ? colors.gold : undefined
+              )}
+              <View style={styles.statTotalRow}>
+                <Text style={styles.statTotalLabel}>Position Points</Text>
+                <Text style={[styles.statTotalPts, positionPts >= 0 ? styles.positive : styles.negative]}>
+                  {fmtPts(positionPts)}
+                </Text>
+              </View>
+            </View>
+
             {/* Hole scoring section */}
             <View style={styles.statSection}>
               <Text style={styles.statSectionTitle}>Scoring</Text>
@@ -316,7 +337,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
                     {item.teamName} {item.isMe ? '(You)' : ''}
                   </Text>
                   <Text style={styles.meta}>
-                    Hole: {item.holePoints} | Stat: {item.statPoints}
+                    Pos: {item.positionPoints || 0} | Hole: {item.holePoints} | Stat: {item.statPoints}
                   </Text>
                 </View>
                 <View style={styles.weekPointsCol}>
@@ -372,10 +393,13 @@ export default function SeasonHomeScreen({ route, navigation }) {
             <View style={styles.standingInfo}>
               <Text style={styles.teamName}>{item.teamName}</Text>
               <Text style={styles.meta}>
-                {item.tournamentsPlayed} tournaments | {item.totalBirdies} birdies | {item.totalEagles} eagles
+                {item.tournamentsPlayed} tournaments{item.avgPosition ? ` | Avg finish: ${item.avgPosition}` : ''}
               </Text>
             </View>
-            <Text style={styles.points}>{item.totalPoints.toFixed(0)}</Text>
+            <View style={styles.standingPointsCol}>
+              <Text style={styles.points}>{item.totalPoints.toFixed(0)}</Text>
+              <Text style={styles.weekPtsLabel}>season pts</Text>
+            </View>
           </View>
         )}
       />
@@ -488,6 +512,8 @@ export default function SeasonHomeScreen({ route, navigation }) {
     if (p.bogeys > 0) holeRows.push({ label: 'Bogeys', value: p.bogeys, pts: +(p.bogeys * (league?.scoringConfig?.bogey || -1)).toFixed(2) });
     if (p.doubles_or_worse > 0) holeRows.push({ label: 'Double+', value: p.doubles_or_worse, pts: +(p.doubles_or_worse * (league?.scoringConfig?.double_bogey || -3)).toFixed(2) });
 
+    const positionPts = p.position_points || 0;
+
     return (
       <View key={i} style={styles.playerCard}>
         <TouchableOpacity
@@ -496,7 +522,9 @@ export default function SeasonHomeScreen({ route, navigation }) {
         >
           <View style={styles.playerCardLeft}>
             <Text style={styles.playerCardName}>{p.playerName}</Text>
-            <Text style={styles.playerCardThru}>{p.holes_played} holes</Text>
+            <Text style={styles.playerCardThru}>
+              {p.position ? `Pos: ${p.position}` : ''}{p.position ? '  |  ' : ''}{p.holes_played} holes
+            </Text>
           </View>
           <Text style={[styles.playerCardTotal, p.points >= 0 ? styles.positive : styles.negative]}>
             {fmtPts(p.points)} pts
@@ -506,6 +534,23 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
         {isPlayerExpanded && (
           <View style={styles.playerCardBody}>
+            {/* Position points section */}
+            <View style={styles.statSection}>
+              <Text style={styles.statSectionTitle}>Leaderboard Position</Text>
+              {renderStatRow(
+                p.position ? `Position: ${p.position}` : 'No position data',
+                '',
+                positionPts,
+                positionPts > 0 ? colors.gold : undefined
+              )}
+              <View style={styles.statTotalRow}>
+                <Text style={styles.statTotalLabel}>Position Points</Text>
+                <Text style={[styles.statTotalPts, positionPts >= 0 ? styles.positive : styles.negative]}>
+                  {fmtPts(positionPts)}
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.statSection}>
               <Text style={styles.statSectionTitle}>Scoring</Text>
               {holeRows.map(r => renderStatRow(r.label, r.value, r.pts))}
@@ -835,6 +880,7 @@ const styles = StyleSheet.create({
   },
   rank: { color: colors.textMuted, fontSize: 18, fontWeight: '800', width: 30, textAlign: 'center' },
   standingInfo: { flex: 1, marginLeft: 12 },
+  standingPointsCol: { alignItems: 'flex-end' },
   points: { color: colors.positive, fontSize: 22, fontWeight: '800' },
 
   // Roster

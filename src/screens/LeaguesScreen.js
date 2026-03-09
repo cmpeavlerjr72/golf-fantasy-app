@@ -12,7 +12,6 @@ export default function LeaguesScreen({ navigation }) {
   const { user } = useAuth();
   const [leagues, setLeagues] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,34 +57,6 @@ export default function LeaguesScreen({ navigation }) {
     }
   }
 
-  async function handleSync() {
-    setSyncing(true);
-    try {
-      const result = await api.syncAll();
-      Alert.alert('Sync Complete', `Tournament: ${result.tournament || 'N/A'}\nPlayer stats: ${result.playersWithStats || 0}\nScores: ${result.playersWithScores || 0}\nHole scores: ${result.holeScoresSynced || 0}\nTournament stats: ${result.tournamentStatsSynced || 0}`);
-    } catch (err) {
-      Alert.alert('Sync Error', err.message);
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  async function handleDebug() {
-    try {
-      const d = await api.syncDebug();
-      const nm = (d.nameMatches || []).map(m => `${m.lineupName}: ${m.foundInStats ? 'FOUND' : 'MISSING'}`).join('\n');
-      Alert.alert('Debug Info',
-        `Tournament: ${d.tournament?.name || 'none'} (id: ${d.tournament?.id})\n` +
-        `Tournament stats rows: ${d.tournamentStats?.count || 0}\n` +
-        `Field averages: ${d.fieldAverages ? 'YES' : 'NO'}\n` +
-        `Hole scores: ${d.holeScores?.count || 0}\n` +
-        `Starters: ${(d.lineupStarters || []).join(', ') || 'none'}\n\n` +
-        `Name matches:\n${nm || 'none'}`
-      );
-    } catch (err) {
-      Alert.alert('Debug Error', err.message);
-    }
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -95,9 +66,6 @@ export default function LeaguesScreen({ navigation }) {
           <Text style={styles.headerSub}>Fantasy Golf</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleSync} onLongPress={handleDebug} disabled={syncing} style={styles.syncButton}>
-            <Text style={styles.syncText}>{syncing ? 'Syncing...' : 'Sync'}</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -172,11 +140,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 26, fontWeight: '800', color: colors.textPrimary, letterSpacing: -0.5 },
   headerSub: { color: colors.textMuted, fontSize: 13, marginTop: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  syncButton: {
-    backgroundColor: colors.accentDim, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7,
-    borderWidth: 1, borderColor: colors.accentDark,
-  },
-  syncText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
   logoutBtn: { paddingVertical: 6, paddingHorizontal: 4 },
   logoutText: { color: colors.textMuted, fontSize: 14 },
   list: { padding: 16, paddingTop: 4 },
