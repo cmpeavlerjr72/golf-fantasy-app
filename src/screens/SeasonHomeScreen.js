@@ -480,6 +480,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
   function renderHistoryPlayerCard(p, i, teamKey) {
     const playerKey = `hist-${teamKey}-${p.playerName}`;
     const isPlayerExpanded = expandedPlayer === playerKey;
+    const sb = p.stat_breakdown || {};
     const holeRows = [];
     if (p.eagles > 0) holeRows.push({ label: 'Eagles', value: p.eagles, pts: +(p.eagles * (league?.scoringConfig?.eagle || 5)).toFixed(2) });
     if (p.birdies > 0) holeRows.push({ label: 'Birdies', value: p.birdies, pts: +(p.birdies * (league?.scoringConfig?.birdie || 3)).toFixed(2) });
@@ -511,6 +512,50 @@ export default function SeasonHomeScreen({ route, navigation }) {
               {holeRows.length === 0 && (
                 <Text style={styles.noDataText}>No holes scored</Text>
               )}
+              <View style={styles.statTotalRow}>
+                <Text style={styles.statTotalLabel}>Hole Points</Text>
+                <Text style={[styles.statTotalPts, p.hole_points >= 0 ? styles.positive : styles.negative]}>
+                  {fmtPts(p.hole_points)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.statSection}>
+              <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
+              {sb.fir && renderStatRow(
+                'Fairways Hit',
+                `${(sb.fir.value * 100).toFixed(1)}% (avg ${(sb.fir.avg * 100).toFixed(1)}%)`,
+                sb.fir.pts
+              )}
+              {sb.gir && renderStatRow(
+                'Greens in Reg',
+                `${(sb.gir.value * 100).toFixed(1)}% (avg ${(sb.gir.avg * 100).toFixed(1)}%)`,
+                sb.gir.pts
+              )}
+              {sb.distance && renderStatRow(
+                'Driving Dist',
+                `${sb.distance.value?.toFixed(1)} yds (avg ${sb.distance.avg?.toFixed(1)})`,
+                sb.distance.pts
+              )}
+              {sb.great_shots && renderStatRow(
+                'Great Shots',
+                `${sb.great_shots.count}`,
+                sb.great_shots.pts
+              )}
+              {sb.poor_shots && renderStatRow(
+                'Poor Shots',
+                `${sb.poor_shots.count}`,
+                sb.poor_shots.pts
+              )}
+              {Object.keys(sb).length === 0 && (
+                <Text style={styles.noDataText}>No stat data available</Text>
+              )}
+              <View style={styles.statTotalRow}>
+                <Text style={styles.statTotalLabel}>Stat Points</Text>
+                <Text style={[styles.statTotalPts, p.stat_points >= 0 ? styles.positive : styles.negative]}>
+                  {fmtPts(p.stat_points)}
+                </Text>
+              </View>
             </View>
           </View>
         )}
