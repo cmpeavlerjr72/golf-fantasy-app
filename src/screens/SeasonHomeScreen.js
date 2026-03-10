@@ -761,47 +761,34 @@ export default function SeasonHomeScreen({ route, navigation }) {
     return list;
   }, [allPlayers, playerSearch, playerFilter]);
 
-  function getPointsColor(pts, min, max) {
-    if (pts == null) return colors.bgElevated;
+  // Color gradient for stat cells: red (bad) -> neutral (mid) -> green (good)
+  function getCellColor(value, allValues) {
+    if (value == null || allValues.length === 0) return 'transparent';
+    const sorted = [...allValues].sort((a, b) => a - b);
+    const min = sorted[0];
+    const max = sorted[sorted.length - 1];
     const range = max - min;
     if (range === 0) return colors.bgElevated;
-    const ratio = Math.max(0, Math.min(1, (pts - min) / range));
-    // Gradient: red (0) -> dark (0.35) -> green (1)
-    if (ratio < 0.35) {
-      const t = ratio / 0.35;
-      const r = Math.round(200 - t * 150);
-      const g = Math.round(50 + t * 30);
-      const b = Math.round(50 + t * 20);
-      return `rgb(${r},${g},${b})`;
+    const ratio = (value - min) / range;
+    if (ratio < 0.3) {
+      const t = ratio / 0.3;
+      return `rgba(248,81,73,${0.45 - t * 0.25})`; // red fade
     }
-    if (ratio < 0.55) {
-      return colors.bgElevated;
+    if (ratio < 0.6) {
+      return 'transparent';
     }
-    const t = (ratio - 0.55) / 0.45;
-    const r = Math.round(33 - t * 10);
-    const g = Math.round(80 + t * 105);
-    const b = Math.round(45 + t * 35);
-    return `rgb(${r},${g},${b})`;
+    const t = (ratio - 0.6) / 0.4;
+    return `rgba(63,185,80,${0.15 + t * 0.4})`; // green intensify
   }
 
   function renderPlayers() {
     if (!allPlayers) return null;
 
-    const tournaments = allPlayers.tournaments || [];
     const filters = [
       { key: 'all', label: 'All' },
       { key: 'available', label: 'Available' },
       { key: 'rostered', label: 'Rostered' },
     ];
-
-    // Compute global min/max points for color scaling
-    let globalMin = 0, globalMax = 0;
-    for (const p of allPlayers.players) {
-      for (const h of p.history || []) {
-        if (h.points < globalMin) globalMin = h.points;
-        if (h.points > globalMax) globalMax = h.points;
-      }
-    }
 
     return (
       <FlatList
@@ -837,12 +824,20 @@ export default function SeasonHomeScreen({ route, navigation }) {
             </View>
           </View>
         }
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           const isExpanded = expandedPlayerRow === item.playerName;
-          const historyMap = {};
-          for (const h of item.history || []) {
-            historyMap[h.tournamentId] = h;
-          }
+          const hist = item.history || [];
+          // Pre-compute value arrays for color grading
+          const allPts = hist.map(h => h.points);
+          const allHolePts = hist.map(h => h.holePoints).filter(v => v != null);
+          const allStatPts = hist.map(h => h.statPoints).filter(v => v != null);
+          const allPosPts = hist.map(h => h.posPoints).filter(v => v != null);
+          const allBirdies = hist.map(h => h.birdies).filter(v => v != null);
+          const allBogeys = hist.map(h => h.bogeys).filter(v => v != null);
+
+          // Season totals
+          const totalPts = hist.reduce((s, h) => s + h.points, 0);
+          const avgPts = hist.length > 0 ? totalPts / hist.length : 0;
 
           return (
             <TouchableOpacity
@@ -850,6 +845,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
               onPress={() => setExpandedPlayerRow(isExpanded ? null : item.playerName)}
               activeOpacity={0.7}
             >
+              {/* Collapsed row */}
               <View style={styles.playerListHeader}>
                 <View style={styles.playerListRankCol}>
                   <Text style={styles.playerListRank}>{item.dgRank || '-'}</Text>
@@ -874,86 +870,129 @@ export default function SeasonHomeScreen({ route, navigation }) {
                 <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
               </View>
 
-              {isExpanded && tournaments.length > 0 && (
-                <View style={styles.historyGrid}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View>
-                      {/* Tournament name headers */}
-                      <View style={styles.gridHeaderRow}>
-                        {tournaments.map(t => (
-                          <View key={t.id} style={styles.gridHeaderCell}>
-                            <Text style={styles.gridHeaderText} numberOfLines={2}>
-                              {t.name.replace(/^(The |the )/, '').substring(0, 12)}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                      {/* Points row */}
-                      <View style={styles.gridDataRow}>
-                        {tournaments.map(t => {
-                          const result = historyMap[t.id];
-                          const bgColor = result
-                            ? getPointsColor(result.points, globalMin, globalMax)
-                            : colors.bg;
+              {/* Expanded player card */}
+              {isExpanded && (
+                <View style={styles.pcExpanded}>
+                  {/* Player rankings header */}
+                  <View style={styles.pcRankingsRow}>
+                    <View style={styles.pcRankItem}>
+                      <Text style={styles.pcRankValue}>#{item.dgRank || '-'}</Text>
+                      <Text style={styles.pcRankLabel}>DG RANK</Text>
+                    </View>
+                    <View style={styles.pcRankItem}>
+                      <Text style={styles.pcRankValue}>#{item.owgrRank || '-'}</Text>
+                      <Text style={styles.pcRankLabel}>OWGR</Text>
+                    </View>
+                    <View style={styles.pcRankItem}>
+                      <Text style={[styles.pcRankValue, { color: colors.accent }]}>
+                        {item.sgTotal != null ? item.sgTotal.toFixed(2) : '-'}
+                      </Text>
+                      <Text style={styles.pcRankLabel}>SG TOTAL</Text>
+                    </View>
+                    <View style={styles.pcRankItem}>
+                      <Text style={[styles.pcRankValue, { color: colors.gold }]}>
+                        {avgPts.toFixed(1)}
+                      </Text>
+                      <Text style={styles.pcRankLabel}>AVG PTS</Text>
+                    </View>
+                  </View>
+
+                  {/* Tournament log table */}
+                  {hist.length > 0 ? (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View>
+                        {/* Column headers */}
+                        <View style={styles.pcTableHeader}>
+                          <Text style={[styles.pcColHeader, styles.pcColEvent]}>EVENT</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>FPTS</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>POS</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>HOLE</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>STAT</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>POS PT</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColNarrow]}>BRD</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColNarrow]}>BOG</Text>
+                        </View>
+
+                        {/* Tournament rows */}
+                        {hist.slice().reverse().map((h, i) => {
+                          const shortName = h.tournamentName
+                            .replace(/^(The |the )/, '')
+                            .replace(/ presented by.*$/i, '')
+                            .replace(/ in .*$/i, '')
+                            .substring(0, 16);
+
                           return (
-                            <View
-                              key={t.id}
-                              style={[styles.gridCell, { backgroundColor: bgColor }]}
-                            >
-                              {result ? (
-                                <>
-                                  <Text style={styles.gridCellPoints}>
-                                    {result.points > 0 ? '+' : ''}{result.points.toFixed(1)}
-                                  </Text>
-                                  <Text style={styles.gridCellPos}>
-                                    {result.position || '-'}
-                                  </Text>
-                                </>
-                              ) : (
-                                <Text style={styles.gridCellEmpty}>--</Text>
-                              )}
+                            <View key={i} style={[styles.pcTableRow, i % 2 === 0 && styles.pcTableRowAlt]}>
+                              <Text style={[styles.pcCellText, styles.pcColEvent]} numberOfLines={1}>
+                                {shortName}
+                              </Text>
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.points, allPts) }]}>
+                                <Text style={styles.pcCellValue}>{h.points.toFixed(1)}</Text>
+                              </View>
+                              <View style={styles.pcColStat}>
+                                <Text style={styles.pcCellMuted}>{h.position || '-'}</Text>
+                              </View>
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.holePoints, allHolePts) }]}>
+                                <Text style={styles.pcCellValue}>{h.holePoints != null ? h.holePoints.toFixed(1) : '-'}</Text>
+                              </View>
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.statPoints, allStatPts) }]}>
+                                <Text style={styles.pcCellValue}>{h.statPoints != null ? h.statPoints.toFixed(1) : '-'}</Text>
+                              </View>
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.posPoints, allPosPts) }]}>
+                                <Text style={styles.pcCellValue}>{h.posPoints != null ? h.posPoints : '-'}</Text>
+                              </View>
+                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.birdies, allBirdies) }]}>
+                                <Text style={styles.pcCellValue}>{h.birdies != null ? h.birdies : '-'}</Text>
+                              </View>
+                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.bogeys != null ? -h.bogeys : null, allBogeys.map(v => -v)) }]}>
+                                <Text style={styles.pcCellValue}>{h.bogeys != null ? h.bogeys : '-'}</Text>
+                              </View>
                             </View>
                           );
                         })}
-                      </View>
-                    </View>
-                  </ScrollView>
 
-                  {/* Summary stats */}
-                  {item.history && item.history.length > 0 && (
-                    <View style={styles.playerSummary}>
-                      <View style={styles.playerSummaryStat}>
-                        <Text style={styles.playerSummaryValue}>
-                          {item.history.length}
-                        </Text>
-                        <Text style={styles.playerSummaryLabel}>Events</Text>
+                        {/* Season totals row */}
+                        <View style={styles.pcTotalsRow}>
+                          <Text style={[styles.pcTotalLabel, styles.pcColEvent]}>
+                            {hist.length} EVENT{hist.length !== 1 ? 'S' : ''}
+                          </Text>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>{totalPts.toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalMuted}>--</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>
+                              {hist.reduce((s, h) => s + (h.holePoints || 0), 0).toFixed(1)}
+                            </Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>
+                              {hist.reduce((s, h) => s + (h.statPoints || 0), 0).toFixed(1)}
+                            </Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>
+                              {hist.reduce((s, h) => s + (h.posPoints || 0), 0)}
+                            </Text>
+                          </View>
+                          <View style={styles.pcColNarrow}>
+                            <Text style={styles.pcTotalValue}>
+                              {hist.reduce((s, h) => s + (h.birdies || 0), 0)}
+                            </Text>
+                          </View>
+                          <View style={styles.pcColNarrow}>
+                            <Text style={styles.pcTotalValue}>
+                              {hist.reduce((s, h) => s + (h.bogeys || 0), 0)}
+                            </Text>
+                          </View>
+                        </View>
                       </View>
-                      <View style={styles.playerSummaryStat}>
-                        <Text style={[styles.playerSummaryValue, styles.positive]}>
-                          {item.history.reduce((s, h) => s + h.points, 0).toFixed(1)}
-                        </Text>
-                        <Text style={styles.playerSummaryLabel}>Total Pts</Text>
-                      </View>
-                      <View style={styles.playerSummaryStat}>
-                        <Text style={styles.playerSummaryValue}>
-                          {(item.history.reduce((s, h) => s + h.points, 0) / item.history.length).toFixed(1)}
-                        </Text>
-                        <Text style={styles.playerSummaryLabel}>Avg Pts</Text>
-                      </View>
-                      <View style={styles.playerSummaryStat}>
-                        <Text style={[styles.playerSummaryValue, styles.positive]}>
-                          {Math.max(...item.history.map(h => h.points)).toFixed(1)}
-                        </Text>
-                        <Text style={styles.playerSummaryLabel}>Best</Text>
-                      </View>
-                    </View>
+                    </ScrollView>
+                  ) : (
+                    <Text style={styles.noDataText}>No tournament history yet</Text>
                   )}
-                </View>
-              )}
-
-              {isExpanded && tournaments.length === 0 && (
-                <View style={styles.historyGrid}>
-                  <Text style={styles.noDataText}>No finalized tournaments yet</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -1239,48 +1278,78 @@ const styles = StyleSheet.create({
   freeAgentLabel: { color: colors.textMuted, fontSize: 11 },
   playerListSg: { color: colors.textMuted, fontSize: 11 },
 
-  // Tournament history grid
-  historyGrid: {
+  // Player card expanded section
+  pcExpanded: {
     borderTopWidth: 1, borderTopColor: colors.border,
-    paddingVertical: 10, paddingHorizontal: 8,
     backgroundColor: colors.bgCardAlt,
+    paddingBottom: 6,
   },
-  gridHeaderRow: {
-    flexDirection: 'row', marginBottom: 4,
+  pcRankingsRow: {
+    flexDirection: 'row', justifyContent: 'space-around',
+    paddingVertical: 12, paddingHorizontal: 8,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  gridHeaderCell: {
-    width: 64, alignItems: 'center', paddingHorizontal: 2,
+  pcRankItem: { alignItems: 'center' },
+  pcRankValue: {
+    color: colors.textPrimary, fontSize: 17, fontWeight: '800',
   },
-  gridHeaderText: {
-    color: colors.textMuted, fontSize: 9, textAlign: 'center', fontWeight: '600',
-  },
-  gridDataRow: {
-    flexDirection: 'row',
-  },
-  gridCell: {
-    width: 64, height: 48, alignItems: 'center', justifyContent: 'center',
-    marginHorizontal: 1, borderRadius: 6,
-  },
-  gridCellPoints: {
-    color: colors.textPrimary, fontSize: 13, fontWeight: '800',
-  },
-  gridCellPos: {
-    color: 'rgba(255,255,255,0.7)', fontSize: 9, marginTop: 1,
-  },
-  gridCellEmpty: {
-    color: colors.textMuted, fontSize: 12,
+  pcRankLabel: {
+    color: colors.textMuted, fontSize: 9, fontWeight: '700',
+    letterSpacing: 0.5, marginTop: 2,
   },
 
-  // Player summary stats
-  playerSummary: {
-    flexDirection: 'row', marginTop: 10, justifyContent: 'space-around',
-    borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10,
+  // Tournament log table
+  pcTableHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 8, paddingVertical: 6,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  playerSummaryStat: { alignItems: 'center' },
-  playerSummaryValue: {
-    color: colors.textPrimary, fontSize: 15, fontWeight: '800',
+  pcColHeader: {
+    color: colors.textMuted, fontSize: 9, fontWeight: '700',
+    textAlign: 'center', letterSpacing: 0.3,
   },
-  playerSummaryLabel: {
-    color: colors.textMuted, fontSize: 10, marginTop: 1,
+  pcColEvent: { width: 110, textAlign: 'left', paddingLeft: 4 },
+  pcColStat: {
+    width: 52, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 7, borderRadius: 3, marginHorizontal: 1,
+  },
+  pcColNarrow: {
+    width: 38, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 7, borderRadius: 3, marginHorizontal: 1,
+  },
+  pcTableRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 8, minHeight: 34,
+  },
+  pcTableRowAlt: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  pcCellText: {
+    color: colors.textSecondary, fontSize: 12, fontWeight: '500',
+  },
+  pcCellValue: {
+    color: colors.textPrimary, fontSize: 12, fontWeight: '700',
+    textAlign: 'center',
+  },
+  pcCellMuted: {
+    color: colors.textMuted, fontSize: 12, fontWeight: '600',
+    textAlign: 'center',
+  },
+  pcTotalsRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 8, paddingVertical: 8,
+    borderTopWidth: 1, borderTopColor: colors.border,
+    marginTop: 2,
+  },
+  pcTotalLabel: {
+    color: colors.textMuted, fontSize: 11, fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  pcTotalValue: {
+    color: colors.gold, fontSize: 12, fontWeight: '800',
+    textAlign: 'center',
+  },
+  pcTotalMuted: {
+    color: colors.textMuted, fontSize: 12, textAlign: 'center',
   },
 });
