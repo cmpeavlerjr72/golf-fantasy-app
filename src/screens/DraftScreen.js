@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
-  TextInput, ScrollView,
+  View, Text, FlatList, TouchableOpacity, Pressable, StyleSheet, Alert, ActivityIndicator,
+  TextInput, ScrollView, Platform,
 } from 'react-native';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
@@ -88,13 +88,19 @@ export default function DraftScreen({ route }) {
   }
 
   function handlePick(playerName) {
-    Alert.alert('Confirm Pick', `Draft ${playerName}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Draft',
-        onPress: () => socketRef.current?.emit('draft-pick', { leagueId, playerName }),
-      },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Draft ${playerName}?`)) {
+        socketRef.current?.emit('draft-pick', { leagueId, playerName });
+      }
+    } else {
+      Alert.alert('Confirm Pick', `Draft ${playerName}?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Draft',
+          onPress: () => socketRef.current?.emit('draft-pick', { leagueId, playerName }),
+        },
+      ]);
+    }
   }
 
   // --- Player research data (season leagues) ---
@@ -285,12 +291,17 @@ export default function DraftScreen({ route }) {
           </View>
           {/* Draft button */}
           {isMyTurn && !isDrafted && (
-            <TouchableOpacity
+            <Pressable
               style={styles.draftBtn}
-              onPress={(e) => { e.stopPropagation && e.stopPropagation(); handlePick(item.playerName); }}
+              onPress={() => handlePick(item.playerName)}
+              {...(Platform.OS === 'web' ? {
+                onStartShouldSetResponder: () => true,
+                onTouchEnd: (e) => { e.stopPropagation(); },
+                onClick: (e) => { e.stopPropagation(); handlePick(item.playerName); },
+              } : {})}
             >
               <Text style={styles.draftBtnText}>Draft</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
           <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
         </View>

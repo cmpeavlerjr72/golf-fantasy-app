@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
 import { colors } from '../theme';
 
-export default function LeaguesScreen({ navigation }) {
+export default function LeaguesScreen({ navigation, route }) {
   const { user } = useAuth();
   const [leagues, setLeagues] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -16,7 +16,11 @@ export default function LeaguesScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       loadLeagues();
-    }, [])
+      if (route.params?.joined) {
+        Alert.alert('Joined!', `You have joined ${route.params.joined}.`);
+        navigation.setParams({ joined: undefined });
+      }
+    }, [route.params?.joined])
   );
 
   async function loadLeagues() {

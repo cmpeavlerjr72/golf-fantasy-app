@@ -15,10 +15,8 @@ export default function JoinLeagueScreen({ navigation }) {
     if (!inviteCode || !teamName) return Alert.alert('Error', 'Invite code and team name are required');
     setLoading(true);
     try {
-      await api.joinLeague(inviteCode.trim(), teamName.trim());
-      Alert.alert('Joined!', 'You have joined the league.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      const result = await api.joinLeague(inviteCode.trim(), teamName.trim());
+      navigation.navigate('Leagues', { joined: result.name || 'the league' });
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
