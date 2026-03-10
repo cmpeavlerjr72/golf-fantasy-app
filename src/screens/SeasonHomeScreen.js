@@ -827,17 +827,28 @@ export default function SeasonHomeScreen({ route, navigation }) {
         renderItem={({ item }) => {
           const isExpanded = expandedPlayerRow === item.playerName;
           const hist = item.history || [];
-          // Pre-compute value arrays for color grading
-          const allPts = hist.map(h => h.points);
-          const allHolePts = hist.map(h => h.holePoints).filter(v => v != null);
-          const allStatPts = hist.map(h => h.statPoints).filter(v => v != null);
-          const allPosPts = hist.map(h => h.posPoints).filter(v => v != null);
-          const allBirdies = hist.map(h => h.birdies).filter(v => v != null);
-          const allBogeys = hist.map(h => h.bogeys).filter(v => v != null);
+          // Pre-compute value arrays for color grading per column
+          const vals = (key) => hist.map(h => h[key]).filter(v => v != null);
+          const vFpts = vals('points');
+          const vPosPts = vals('posPoints');
+          const vHolePts = vals('holePoints');
+          const vEagles = vals('eagles');
+          const vBirdies = vals('birdies');
+          const vPars = vals('pars');
+          // bogeys/doubles: invert so fewer = better color
+          const vBogeys = hist.map(h => h.bogeys != null ? -h.bogeys : null).filter(v => v != null);
+          const vDoubles = hist.map(h => h.doubles != null ? -h.doubles : null).filter(v => v != null);
+          const vStatPts = vals('statPoints');
+          const vFir = vals('firPts');
+          const vGir = vals('girPts');
+          const vDist = vals('distPts');
+          const vGreat = vals('greatPts');
+          const vPoor = vals('poorPts');
 
           // Season totals
           const totalPts = hist.reduce((s, h) => s + h.points, 0);
           const avgPts = hist.length > 0 ? totalPts / hist.length : 0;
+          const sum = (key) => hist.reduce((s, h) => s + (h[key] || 0), 0);
 
           return (
             <TouchableOpacity
@@ -899,18 +910,28 @@ export default function SeasonHomeScreen({ route, navigation }) {
 
                   {/* Tournament log table */}
                   {hist.length > 0 ? (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={true}>
                       <View>
-                        {/* Column headers */}
+                        {/* Column headers — grouped: FPTS | POS | POS PT || HOLE total | eagles..dbl || STAT total | FIR..Poor */}
                         <View style={styles.pcTableHeader}>
                           <Text style={[styles.pcColHeader, styles.pcColEvent]}>EVENT</Text>
-                          <Text style={[styles.pcColHeader, styles.pcColStat]}>FPTS</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColTotal]}>FPTS</Text>
                           <Text style={[styles.pcColHeader, styles.pcColStat]}>POS</Text>
-                          <Text style={[styles.pcColHeader, styles.pcColStat]}>HOLE</Text>
-                          <Text style={[styles.pcColHeader, styles.pcColStat]}>STAT</Text>
-                          <Text style={[styles.pcColHeader, styles.pcColStat]}>POS PT</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColTotal]}>POS PT</Text>
+                          <View style={styles.pcGroupDivider} />
+                          <Text style={[styles.pcColHeader, styles.pcColTotal]}>HOLE</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColNarrow]}>EGL</Text>
                           <Text style={[styles.pcColHeader, styles.pcColNarrow]}>BRD</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColNarrow]}>PAR</Text>
                           <Text style={[styles.pcColHeader, styles.pcColNarrow]}>BOG</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColNarrow]}>DBL+</Text>
+                          <View style={styles.pcGroupDivider} />
+                          <Text style={[styles.pcColHeader, styles.pcColTotal]}>STAT</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>FIR</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>GIR</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>DIST</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>GREAT</Text>
+                          <Text style={[styles.pcColHeader, styles.pcColStat]}>POOR</Text>
                         </View>
 
                         {/* Tournament rows */}
@@ -926,26 +947,67 @@ export default function SeasonHomeScreen({ route, navigation }) {
                               <Text style={[styles.pcCellText, styles.pcColEvent]} numberOfLines={1}>
                                 {shortName}
                               </Text>
-                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.points, allPts) }]}>
-                                <Text style={styles.pcCellValue}>{h.points.toFixed(1)}</Text>
+                              {/* FPTS */}
+                              <View style={[styles.pcColTotal, { backgroundColor: getCellColor(h.points, vFpts) }]}>
+                                <Text style={styles.pcCellBold}>{h.points.toFixed(1)}</Text>
                               </View>
+                              {/* POS */}
                               <View style={styles.pcColStat}>
                                 <Text style={styles.pcCellMuted}>{h.position || '-'}</Text>
                               </View>
-                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.holePoints, allHolePts) }]}>
-                                <Text style={styles.pcCellValue}>{h.holePoints != null ? h.holePoints.toFixed(1) : '-'}</Text>
+                              {/* POS PT */}
+                              <View style={[styles.pcColTotal, { backgroundColor: getCellColor(h.posPoints, vPosPts) }]}>
+                                <Text style={styles.pcCellBold}>{h.posPoints ?? '-'}</Text>
                               </View>
-                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.statPoints, allStatPts) }]}>
-                                <Text style={styles.pcCellValue}>{h.statPoints != null ? h.statPoints.toFixed(1) : '-'}</Text>
+                              <View style={styles.pcGroupDivider} />
+                              {/* HOLE total */}
+                              <View style={[styles.pcColTotal, { backgroundColor: getCellColor(h.holePoints, vHolePts) }]}>
+                                <Text style={styles.pcCellBold}>{h.holePoints != null ? h.holePoints.toFixed(1) : '-'}</Text>
                               </View>
-                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.posPoints, allPosPts) }]}>
-                                <Text style={styles.pcCellValue}>{h.posPoints != null ? h.posPoints : '-'}</Text>
+                              {/* Eagles */}
+                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.eagles, vEagles) }]}>
+                                <Text style={styles.pcCellValue}>{h.eagles ?? '-'}</Text>
                               </View>
-                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.birdies, allBirdies) }]}>
-                                <Text style={styles.pcCellValue}>{h.birdies != null ? h.birdies : '-'}</Text>
+                              {/* Birdies */}
+                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.birdies, vBirdies) }]}>
+                                <Text style={styles.pcCellValue}>{h.birdies ?? '-'}</Text>
                               </View>
-                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.bogeys != null ? -h.bogeys : null, allBogeys.map(v => -v)) }]}>
-                                <Text style={styles.pcCellValue}>{h.bogeys != null ? h.bogeys : '-'}</Text>
+                              {/* Pars */}
+                              <View style={styles.pcColNarrow}>
+                                <Text style={styles.pcCellMuted}>{h.pars ?? '-'}</Text>
+                              </View>
+                              {/* Bogeys (inverted: fewer = greener) */}
+                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.bogeys != null ? -h.bogeys : null, vBogeys) }]}>
+                                <Text style={styles.pcCellValue}>{h.bogeys ?? '-'}</Text>
+                              </View>
+                              {/* Doubles+ (inverted) */}
+                              <View style={[styles.pcColNarrow, { backgroundColor: getCellColor(h.doubles != null ? -h.doubles : null, vDoubles) }]}>
+                                <Text style={styles.pcCellValue}>{h.doubles ?? '-'}</Text>
+                              </View>
+                              <View style={styles.pcGroupDivider} />
+                              {/* STAT total */}
+                              <View style={[styles.pcColTotal, { backgroundColor: getCellColor(h.statPoints, vStatPts) }]}>
+                                <Text style={styles.pcCellBold}>{h.statPoints != null ? h.statPoints.toFixed(1) : '-'}</Text>
+                              </View>
+                              {/* FIR pts */}
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.firPts, vFir) }]}>
+                                <Text style={styles.pcCellValue}>{h.firPts != null ? h.firPts.toFixed(1) : '-'}</Text>
+                              </View>
+                              {/* GIR pts */}
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.girPts, vGir) }]}>
+                                <Text style={styles.pcCellValue}>{h.girPts != null ? h.girPts.toFixed(1) : '-'}</Text>
+                              </View>
+                              {/* DIST pts */}
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.distPts, vDist) }]}>
+                                <Text style={styles.pcCellValue}>{h.distPts != null ? h.distPts.toFixed(1) : '-'}</Text>
+                              </View>
+                              {/* Great shots pts */}
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.greatPts, vGreat) }]}>
+                                <Text style={styles.pcCellValue}>{h.greatPts != null ? h.greatPts.toFixed(1) : '-'}</Text>
+                              </View>
+                              {/* Poor shots pts */}
+                              <View style={[styles.pcColStat, { backgroundColor: getCellColor(h.poorPts, vPoor) }]}>
+                                <Text style={styles.pcCellValue}>{h.poorPts != null ? h.poorPts.toFixed(1) : '-'}</Text>
                               </View>
                             </View>
                           );
@@ -956,36 +1018,52 @@ export default function SeasonHomeScreen({ route, navigation }) {
                           <Text style={[styles.pcTotalLabel, styles.pcColEvent]}>
                             {hist.length} EVENT{hist.length !== 1 ? 'S' : ''}
                           </Text>
-                          <View style={styles.pcColStat}>
+                          <View style={styles.pcColTotal}>
                             <Text style={styles.pcTotalValue}>{totalPts.toFixed(1)}</Text>
                           </View>
                           <View style={styles.pcColStat}>
                             <Text style={styles.pcTotalMuted}>--</Text>
                           </View>
-                          <View style={styles.pcColStat}>
-                            <Text style={styles.pcTotalValue}>
-                              {hist.reduce((s, h) => s + (h.holePoints || 0), 0).toFixed(1)}
-                            </Text>
+                          <View style={styles.pcColTotal}>
+                            <Text style={styles.pcTotalValue}>{sum('posPoints')}</Text>
                           </View>
-                          <View style={styles.pcColStat}>
-                            <Text style={styles.pcTotalValue}>
-                              {hist.reduce((s, h) => s + (h.statPoints || 0), 0).toFixed(1)}
-                            </Text>
-                          </View>
-                          <View style={styles.pcColStat}>
-                            <Text style={styles.pcTotalValue}>
-                              {hist.reduce((s, h) => s + (h.posPoints || 0), 0)}
-                            </Text>
+                          <View style={styles.pcGroupDivider} />
+                          <View style={styles.pcColTotal}>
+                            <Text style={styles.pcTotalValue}>{sum('holePoints').toFixed(1)}</Text>
                           </View>
                           <View style={styles.pcColNarrow}>
-                            <Text style={styles.pcTotalValue}>
-                              {hist.reduce((s, h) => s + (h.birdies || 0), 0)}
-                            </Text>
+                            <Text style={styles.pcTotalValue}>{sum('eagles')}</Text>
                           </View>
                           <View style={styles.pcColNarrow}>
-                            <Text style={styles.pcTotalValue}>
-                              {hist.reduce((s, h) => s + (h.bogeys || 0), 0)}
-                            </Text>
+                            <Text style={styles.pcTotalValue}>{sum('birdies')}</Text>
+                          </View>
+                          <View style={styles.pcColNarrow}>
+                            <Text style={styles.pcTotalMuted}>{sum('pars')}</Text>
+                          </View>
+                          <View style={styles.pcColNarrow}>
+                            <Text style={styles.pcTotalValue}>{sum('bogeys')}</Text>
+                          </View>
+                          <View style={styles.pcColNarrow}>
+                            <Text style={styles.pcTotalValue}>{sum('doubles')}</Text>
+                          </View>
+                          <View style={styles.pcGroupDivider} />
+                          <View style={styles.pcColTotal}>
+                            <Text style={styles.pcTotalValue}>{sum('statPoints').toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>{sum('firPts').toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>{sum('girPts').toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>{sum('distPts').toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>{sum('greatPts').toFixed(1)}</Text>
+                          </View>
+                          <View style={styles.pcColStat}>
+                            <Text style={styles.pcTotalValue}>{sum('poorPts').toFixed(1)}</Text>
                           </View>
                         </View>
                       </View>
@@ -1309,13 +1387,22 @@ const styles = StyleSheet.create({
     textAlign: 'center', letterSpacing: 0.3,
   },
   pcColEvent: { width: 110, textAlign: 'left', paddingLeft: 4 },
+  pcColTotal: {
+    width: 54, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 7, borderRadius: 3, marginHorizontal: 1,
+    borderLeftWidth: 0.5, borderLeftColor: colors.border,
+  },
   pcColStat: {
-    width: 52, alignItems: 'center', justifyContent: 'center',
+    width: 48, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 7, borderRadius: 3, marginHorizontal: 1,
   },
   pcColNarrow: {
     width: 38, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 7, borderRadius: 3, marginHorizontal: 1,
+  },
+  pcGroupDivider: {
+    width: 2, backgroundColor: colors.border, marginHorizontal: 3,
+    alignSelf: 'stretch',
   },
   pcTableRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -1327,8 +1414,12 @@ const styles = StyleSheet.create({
   pcCellText: {
     color: colors.textSecondary, fontSize: 12, fontWeight: '500',
   },
+  pcCellBold: {
+    color: colors.textPrimary, fontSize: 12, fontWeight: '900',
+    textAlign: 'center',
+  },
   pcCellValue: {
-    color: colors.textPrimary, fontSize: 12, fontWeight: '700',
+    color: colors.textPrimary, fontSize: 12, fontWeight: '600',
     textAlign: 'center',
   },
   pcCellMuted: {
