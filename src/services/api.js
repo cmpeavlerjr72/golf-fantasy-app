@@ -79,6 +79,8 @@ export const getWeeklyScores = (leagueId) => request(`/lineups/${leagueId}/weekl
 
 export const getWeeklyHistory = (leagueId) => request(`/lineups/${leagueId}/weekly-history`);
 
+export const getAllPlayers = (leagueId) => request(`/lineups/${leagueId}/all-players`);
+
 // Rosters (season leagues)
 export const getRoster = (leagueId) => request(`/rosters/${leagueId}`);
 
@@ -110,3 +112,5 @@ export const syncAll = () => request('/sync', { method: 'POST' });
 export const syncStats = () => request('/sync/stats', { method: 'POST' });
 
 export const syncDebug = () => request('/sync/debug');
+
+export const syncBackfill = () => request('/sync/backfill', { method: 'POST' });

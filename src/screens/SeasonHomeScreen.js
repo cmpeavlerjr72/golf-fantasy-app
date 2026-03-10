@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
-  RefreshControl,
+  RefreshControl, TextInput, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
@@ -19,6 +19,10 @@ export default function SeasonHomeScreen({ route, navigation }) {
   const [trades, setTrades] = useState([]);
   const [history, setHistory] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [allPlayers, setAllPlayers] = useState(null);
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [expandedPlayerRow, setExpandedPlayerRow] = useState(null);
+  const [playerFilter, setPlayerFilter] = useState('all'); // 'all' | 'available' | 'rostered'
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(null);
@@ -78,6 +82,9 @@ export default function SeasonHomeScreen({ route, navigation }) {
       } else if (activeTab === 'trades') {
         const data = await api.getTrades(leagueId);
         setTrades(data || []);
+      } else if (activeTab === 'players') {
+        const data = await api.getAllPlayers(leagueId);
+        setAllPlayers(data);
       }
       if (initialLoad) setInitialLoad(false);
     } catch (err) {
@@ -741,12 +748,231 @@ export default function SeasonHomeScreen({ route, navigation }) {
     );
   }
 
+  // --- Players tab ---
+  const filteredPlayers = useMemo(() => {
+    if (!allPlayers?.players) return [];
+    let list = allPlayers.players;
+    if (playerSearch.trim()) {
+      const q = playerSearch.toLowerCase();
+      list = list.filter(p => p.playerName.toLowerCase().includes(q));
+    }
+    if (playerFilter === 'available') list = list.filter(p => !p.owner);
+    else if (playerFilter === 'rostered') list = list.filter(p => !!p.owner);
+    return list;
+  }, [allPlayers, playerSearch, playerFilter]);
+
+  function getPointsColor(pts, min, max) {
+    if (pts == null) return colors.bgElevated;
+    const range = max - min;
+    if (range === 0) return colors.bgElevated;
+    const ratio = Math.max(0, Math.min(1, (pts - min) / range));
+    // Gradient: red (0) -> dark (0.35) -> green (1)
+    if (ratio < 0.35) {
+      const t = ratio / 0.35;
+      const r = Math.round(200 - t * 150);
+      const g = Math.round(50 + t * 30);
+      const b = Math.round(50 + t * 20);
+      return `rgb(${r},${g},${b})`;
+    }
+    if (ratio < 0.55) {
+      return colors.bgElevated;
+    }
+    const t = (ratio - 0.55) / 0.45;
+    const r = Math.round(33 - t * 10);
+    const g = Math.round(80 + t * 105);
+    const b = Math.round(45 + t * 35);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function renderPlayers() {
+    if (!allPlayers) return null;
+
+    const tournaments = allPlayers.tournaments || [];
+    const filters = [
+      { key: 'all', label: 'All' },
+      { key: 'available', label: 'Available' },
+      { key: 'rostered', label: 'Rostered' },
+    ];
+
+    // Compute global min/max points for color scaling
+    let globalMin = 0, globalMax = 0;
+    for (const p of allPlayers.players) {
+      for (const h of p.history || []) {
+        if (h.points < globalMin) globalMin = h.points;
+        if (h.points > globalMax) globalMax = h.points;
+      }
+    }
+
+    return (
+      <FlatList
+        data={filteredPlayers}
+        keyExtractor={(item) => item.playerName}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor="#fff" />}
+        ListHeaderComponent={
+          <View style={styles.sectionHeader}>
+            <Text style={styles.title}>Players</Text>
+            <Text style={styles.subtitle}>
+              {filteredPlayers.length} players{playerSearch ? ' matching' : ''}
+            </Text>
+            <TextInput
+              style={styles.playerSearchInput}
+              placeholder="Search players..."
+              placeholderTextColor={colors.textMuted}
+              value={playerSearch}
+              onChangeText={setPlayerSearch}
+              autoCorrect={false}
+            />
+            <View style={styles.filterRow}>
+              {filters.map(f => (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[styles.filterBtn, playerFilter === f.key && styles.filterBtnActive]}
+                  onPress={() => setPlayerFilter(f.key)}
+                >
+                  <Text style={[styles.filterBtnText, playerFilter === f.key && styles.filterBtnTextActive]}>
+                    {f.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        }
+        renderItem={({ item, index }) => {
+          const isExpanded = expandedPlayerRow === item.playerName;
+          const historyMap = {};
+          for (const h of item.history || []) {
+            historyMap[h.tournamentId] = h;
+          }
+
+          return (
+            <TouchableOpacity
+              style={styles.playerListCard}
+              onPress={() => setExpandedPlayerRow(isExpanded ? null : item.playerName)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.playerListHeader}>
+                <View style={styles.playerListRankCol}>
+                  <Text style={styles.playerListRank}>{item.dgRank || '-'}</Text>
+                </View>
+                <View style={styles.playerListInfo}>
+                  <Text style={styles.playerListName}>{item.playerName}</Text>
+                  <View style={styles.playerListMeta}>
+                    {item.owner ? (
+                      <View style={[styles.ownerBadge, item.owner.isMe && styles.ownerBadgeMe]}>
+                        <Text style={[styles.ownerBadgeText, item.owner.isMe && styles.ownerBadgeTextMe]}>
+                          {item.owner.isMe ? 'My Team' : item.owner.teamName}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.freeAgentLabel}>Free Agent</Text>
+                    )}
+                    {item.sgTotal != null && (
+                      <Text style={styles.playerListSg}>SG: {item.sgTotal.toFixed(2)}</Text>
+                    )}
+                  </View>
+                </View>
+                <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
+              </View>
+
+              {isExpanded && tournaments.length > 0 && (
+                <View style={styles.historyGrid}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View>
+                      {/* Tournament name headers */}
+                      <View style={styles.gridHeaderRow}>
+                        {tournaments.map(t => (
+                          <View key={t.id} style={styles.gridHeaderCell}>
+                            <Text style={styles.gridHeaderText} numberOfLines={2}>
+                              {t.name.replace(/^(The |the )/, '').substring(0, 12)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                      {/* Points row */}
+                      <View style={styles.gridDataRow}>
+                        {tournaments.map(t => {
+                          const result = historyMap[t.id];
+                          const bgColor = result
+                            ? getPointsColor(result.points, globalMin, globalMax)
+                            : colors.bg;
+                          return (
+                            <View
+                              key={t.id}
+                              style={[styles.gridCell, { backgroundColor: bgColor }]}
+                            >
+                              {result ? (
+                                <>
+                                  <Text style={styles.gridCellPoints}>
+                                    {result.points > 0 ? '+' : ''}{result.points.toFixed(1)}
+                                  </Text>
+                                  <Text style={styles.gridCellPos}>
+                                    {result.position || '-'}
+                                  </Text>
+                                </>
+                              ) : (
+                                <Text style={styles.gridCellEmpty}>--</Text>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </ScrollView>
+
+                  {/* Summary stats */}
+                  {item.history && item.history.length > 0 && (
+                    <View style={styles.playerSummary}>
+                      <View style={styles.playerSummaryStat}>
+                        <Text style={styles.playerSummaryValue}>
+                          {item.history.length}
+                        </Text>
+                        <Text style={styles.playerSummaryLabel}>Events</Text>
+                      </View>
+                      <View style={styles.playerSummaryStat}>
+                        <Text style={[styles.playerSummaryValue, styles.positive]}>
+                          {item.history.reduce((s, h) => s + h.points, 0).toFixed(1)}
+                        </Text>
+                        <Text style={styles.playerSummaryLabel}>Total Pts</Text>
+                      </View>
+                      <View style={styles.playerSummaryStat}>
+                        <Text style={styles.playerSummaryValue}>
+                          {(item.history.reduce((s, h) => s + h.points, 0) / item.history.length).toFixed(1)}
+                        </Text>
+                        <Text style={styles.playerSummaryLabel}>Avg Pts</Text>
+                      </View>
+                      <View style={styles.playerSummaryStat}>
+                        <Text style={[styles.playerSummaryValue, styles.positive]}>
+                          {Math.max(...item.history.map(h => h.points)).toFixed(1)}
+                        </Text>
+                        <Text style={styles.playerSummaryLabel}>Best</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {isExpanded && tournaments.length === 0 && (
+                <View style={styles.historyGrid}>
+                  <Text style={styles.noDataText}>No finalized tournaments yet</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        }}
+        ListEmptyComponent={
+          !refreshing && <Text style={styles.emptyText}>No players found</Text>
+        }
+      />
+    );
+  }
+
   const tabs = [
     { key: 'week', label: 'This Week' },
     { key: 'standings', label: 'Standings' },
     { key: 'history', label: 'History' },
     { key: 'roster', label: 'Roster' },
     { key: 'trades', label: 'Trades' },
+    { key: 'players', label: 'Players' },
   ];
 
   return (
@@ -768,6 +994,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
       {tab === 'history' && renderHistory()}
       {tab === 'roster' && renderRoster()}
       {tab === 'trades' && renderTrades()}
+      {tab === 'players' && renderPlayers()}
     </View>
   );
 }
@@ -960,4 +1187,100 @@ const styles = StyleSheet.create({
   historyInfo: { flex: 1, marginLeft: 10 },
   historyPointsCol: { alignItems: 'flex-end' },
   historySeasonPts: { color: colors.gold, fontSize: 18, fontWeight: '800' },
+
+  // Players tab
+  playerSearchInput: {
+    backgroundColor: colors.bgElevated, borderRadius: 10, padding: 12,
+    fontSize: 15, color: colors.textPrimary, marginTop: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  filterRow: {
+    flexDirection: 'row', marginTop: 10, gap: 8,
+  },
+  filterBtn: {
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
+  },
+  filterBtnActive: {
+    backgroundColor: colors.accentDim, borderColor: colors.accent,
+  },
+  filterBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  filterBtnTextActive: { color: colors.accent },
+
+  playerListCard: {
+    backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 6,
+    borderRadius: 12, overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.border,
+  },
+  playerListHeader: {
+    flexDirection: 'row', alignItems: 'center', padding: 12,
+  },
+  playerListRankCol: {
+    width: 36, alignItems: 'center',
+  },
+  playerListRank: {
+    color: colors.textMuted, fontSize: 14, fontWeight: '800',
+  },
+  playerListInfo: { flex: 1, marginLeft: 8 },
+  playerListName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  playerListMeta: {
+    flexDirection: 'row', alignItems: 'center', marginTop: 3, gap: 8,
+  },
+  ownerBadge: {
+    backgroundColor: colors.bgElevated, borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  ownerBadgeMe: {
+    backgroundColor: colors.accentDim, borderColor: colors.accent,
+  },
+  ownerBadgeText: { color: colors.textSecondary, fontSize: 11, fontWeight: '600' },
+  ownerBadgeTextMe: { color: colors.accent },
+  freeAgentLabel: { color: colors.textMuted, fontSize: 11 },
+  playerListSg: { color: colors.textMuted, fontSize: 11 },
+
+  // Tournament history grid
+  historyGrid: {
+    borderTopWidth: 1, borderTopColor: colors.border,
+    paddingVertical: 10, paddingHorizontal: 8,
+    backgroundColor: colors.bgCardAlt,
+  },
+  gridHeaderRow: {
+    flexDirection: 'row', marginBottom: 4,
+  },
+  gridHeaderCell: {
+    width: 64, alignItems: 'center', paddingHorizontal: 2,
+  },
+  gridHeaderText: {
+    color: colors.textMuted, fontSize: 9, textAlign: 'center', fontWeight: '600',
+  },
+  gridDataRow: {
+    flexDirection: 'row',
+  },
+  gridCell: {
+    width: 64, height: 48, alignItems: 'center', justifyContent: 'center',
+    marginHorizontal: 1, borderRadius: 6,
+  },
+  gridCellPoints: {
+    color: colors.textPrimary, fontSize: 13, fontWeight: '800',
+  },
+  gridCellPos: {
+    color: 'rgba(255,255,255,0.7)', fontSize: 9, marginTop: 1,
+  },
+  gridCellEmpty: {
+    color: colors.textMuted, fontSize: 12,
+  },
+
+  // Player summary stats
+  playerSummary: {
+    flexDirection: 'row', marginTop: 10, justifyContent: 'space-around',
+    borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10,
+  },
+  playerSummaryStat: { alignItems: 'center' },
+  playerSummaryValue: {
+    color: colors.textPrimary, fontSize: 15, fontWeight: '800',
+  },
+  playerSummaryLabel: {
+    color: colors.textMuted, fontSize: 10, marginTop: 1,
+  },
 });
