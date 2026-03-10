@@ -23,6 +23,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
   const [playerSearch, setPlayerSearch] = useState('');
   const [expandedPlayerRow, setExpandedPlayerRow] = useState(null);
   const [playerFilter, setPlayerFilter] = useState('all'); // 'all' | 'available' | 'rostered'
+  const [playerSort, setPlayerSort] = useState('dg'); // 'dg' | 'owgr' | 'avgPts'
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(null);
@@ -751,15 +752,27 @@ export default function SeasonHomeScreen({ route, navigation }) {
   // --- Players tab ---
   const filteredPlayers = useMemo(() => {
     if (!allPlayers?.players) return [];
-    let list = allPlayers.players;
+    let list = [...allPlayers.players];
     if (playerSearch.trim()) {
       const q = playerSearch.toLowerCase();
       list = list.filter(p => p.playerName.toLowerCase().includes(q));
     }
     if (playerFilter === 'available') list = list.filter(p => !p.owner);
     else if (playerFilter === 'rostered') list = list.filter(p => !!p.owner);
+
+    if (playerSort === 'owgr') {
+      list.sort((a, b) => (a.owgrRank || 9999) - (b.owgrRank || 9999));
+    } else if (playerSort === 'avgPts') {
+      const avg = (p) => {
+        const h = p.history || [];
+        return h.length > 0 ? h.reduce((s, e) => s + e.points, 0) / h.length : -9999;
+      };
+      list.sort((a, b) => avg(b) - avg(a));
+    } else {
+      list.sort((a, b) => (a.dgRank || 9999) - (b.dgRank || 9999));
+    }
     return list;
-  }, [allPlayers, playerSearch, playerFilter]);
+  }, [allPlayers, playerSearch, playerFilter, playerSort]);
 
   // Color gradient for stat cells: red (bad) -> neutral (mid) -> green (good)
   function getCellColor(value, allValues) {
@@ -822,6 +835,24 @@ export default function SeasonHomeScreen({ route, navigation }) {
                 </TouchableOpacity>
               ))}
             </View>
+            <View style={styles.sortRow}>
+              <Text style={styles.sortLabel}>Sort:</Text>
+              {[
+                { key: 'dg', label: 'DG Rank' },
+                { key: 'owgr', label: 'OWGR' },
+                { key: 'avgPts', label: 'Avg FPTS' },
+              ].map(s => (
+                <TouchableOpacity
+                  key={s.key}
+                  style={[styles.sortBtn, playerSort === s.key && styles.sortBtnActive]}
+                  onPress={() => setPlayerSort(s.key)}
+                >
+                  <Text style={[styles.sortBtnText, playerSort === s.key && styles.sortBtnTextActive]}>
+                    {s.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         }
         renderItem={({ item }) => {
@@ -859,7 +890,11 @@ export default function SeasonHomeScreen({ route, navigation }) {
               {/* Collapsed row */}
               <View style={styles.playerListHeader}>
                 <View style={styles.playerListRankCol}>
-                  <Text style={styles.playerListRank}>{item.dgRank || '-'}</Text>
+                  <Text style={styles.playerListRank}>
+                    {playerSort === 'owgr' ? (item.owgrRank || '-')
+                      : playerSort === 'avgPts' ? (avgPts > -9000 ? avgPts.toFixed(0) : '-')
+                      : (item.dgRank || '-')}
+                  </Text>
                 </View>
                 <View style={styles.playerListInfo}>
                   <Text style={styles.playerListName}>{item.playerName}</Text>
@@ -1323,6 +1358,19 @@ const styles = StyleSheet.create({
   },
   filterBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
   filterBtnTextActive: { color: colors.accent },
+  sortRow: {
+    flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6,
+  },
+  sortLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginRight: 2 },
+  sortBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
+  },
+  sortBtnActive: {
+    backgroundColor: colors.goldDim, borderColor: colors.gold,
+  },
+  sortBtnText: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
+  sortBtnTextActive: { color: colors.gold },
 
   playerListCard: {
     backgroundColor: colors.bgCard, marginHorizontal: 16, marginBottom: 6,
