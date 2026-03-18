@@ -52,8 +52,8 @@ export default function CreateLeagueScreen({ navigation }) {
   // Season-specific
   const [rosterSize, setRosterSize] = useState('6');
   const [startersCount, setStartersCount] = useState('4');
-  const [scoring, setScoring] = useState(PRESETS.balanced.scoring);
-  const [activePreset, setActivePreset] = useState('balanced');
+  const [scoring, setScoring] = useState(PRESETS.standard.scoring);
+  const [activePreset, setActivePreset] = useState('standard');
   const [showCustom, setShowCustom] = useState(false);
 
   const [loading, setLoading] = useState(false);
