@@ -25,8 +25,10 @@ export default function FreeAgentsScreen({ route, navigation }) {
     setRefreshing(true);
     try {
       const data = await api.getFreeAgents(leagueId);
-      setAgents(data.freeAgents || []);
-      applySearch(data.freeAgents || [], search);
+      // Sort in-field players first
+      const sorted = (data.freeAgents || []).sort((a, b) => (b.inField ? 1 : 0) - (a.inField ? 1 : 0));
+      setAgents(sorted);
+      applySearch(sorted, search);
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
@@ -86,7 +88,12 @@ export default function FreeAgentsScreen({ route, navigation }) {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <View style={styles.info}>
-              <Text style={styles.name}>{item.playerName}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.name}>{item.playerName}</Text>
+                {item.inField && (
+                  <Text style={{ fontSize: 9, color: '#3fb950', backgroundColor: '#1a3a2a', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden', fontWeight: '700' }}>IN FIELD</Text>
+                )}
+              </View>
               <Text style={styles.meta}>
                 {item.dgRank ? `DG #${item.dgRank}` : ''}
                 {item.owgrRank ? `  OWGR #${item.owgrRank}` : ''}

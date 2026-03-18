@@ -273,17 +273,17 @@ export default function SeasonHomeScreen({ route, navigation }) {
               <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
               {sb.fir && renderStatRow(
                 'Fairways Hit',
-                `${(sb.fir.value * 100).toFixed(1)}% (avg ${(sb.fir.avg * 100).toFixed(1)}%)`,
+                `${(sb.fir.value * 100).toFixed(1)}%`,
                 sb.fir.pts
               )}
               {sb.gir && renderStatRow(
                 'Greens in Reg',
-                `${(sb.gir.value * 100).toFixed(1)}% (avg ${(sb.gir.avg * 100).toFixed(1)}%)`,
+                `${(sb.gir.value * 100).toFixed(1)}%`,
                 sb.gir.pts
               )}
               {sb.distance && renderStatRow(
                 'Driving Dist',
-                `${sb.distance.value?.toFixed(1)} yds (avg ${sb.distance.avg?.toFixed(1)})`,
+                `${sb.distance.value?.toFixed(0)} yds`,
                 sb.distance.pts
               )}
               {sb.great_shots && renderStatRow(
@@ -462,7 +462,15 @@ export default function SeasonHomeScreen({ route, navigation }) {
               const locked = player.locked;
               return (
                 <View key={i} style={styles.rosterRow}>
-                  <Text style={[styles.playerName, locked && styles.lockedPlayer]}>{name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 6 }}>
+                    <Text style={[styles.playerName, locked && styles.lockedPlayer]}>{name}</Text>
+                    {player.inField === true && (
+                      <Text style={{ fontSize: 9, color: '#3fb950', backgroundColor: '#1a3a2a', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, overflow: 'hidden', fontWeight: '700' }}>IN FIELD</Text>
+                    )}
+                    {player.inField === false && (
+                      <Text style={{ fontSize: 9, color: '#484f58' }}>NOT PLAYING</Text>
+                    )}
+                  </View>
                   {locked ? (
                     <Text style={styles.lockedText}>Locked</Text>
                   ) : (
@@ -577,17 +585,17 @@ export default function SeasonHomeScreen({ route, navigation }) {
               <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
               {sb.fir && renderStatRow(
                 'Fairways Hit',
-                `${(sb.fir.value * 100).toFixed(1)}% (avg ${(sb.fir.avg * 100).toFixed(1)}%)`,
+                `${(sb.fir.value * 100).toFixed(1)}%`,
                 sb.fir.pts
               )}
               {sb.gir && renderStatRow(
                 'Greens in Reg',
-                `${(sb.gir.value * 100).toFixed(1)}% (avg ${(sb.gir.avg * 100).toFixed(1)}%)`,
+                `${(sb.gir.value * 100).toFixed(1)}%`,
                 sb.gir.pts
               )}
               {sb.distance && renderStatRow(
                 'Driving Dist',
-                `${sb.distance.value?.toFixed(1)} yds (avg ${sb.distance.avg?.toFixed(1)})`,
+                `${sb.distance.value?.toFixed(0)} yds`,
                 sb.distance.pts
               )}
               {sb.great_shots && renderStatRow(
@@ -1139,6 +1147,12 @@ export default function SeasonHomeScreen({ route, navigation }) {
             <Text style={[styles.tabText, tab === t.key && styles.activeTabText]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
+        <TouchableOpacity
+          style={{ paddingHorizontal: 8, paddingVertical: 6, justifyContent: 'center' }}
+          onPress={() => navigation.navigate('ScoringRules')}
+        >
+          <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600' }}>Rules</Text>
+        </TouchableOpacity>
       </View>
 
       {tab === 'week' && renderWeeklyScores()}

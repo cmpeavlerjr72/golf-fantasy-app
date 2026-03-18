@@ -7,31 +7,31 @@ import * as api from '../services/api';
 import { colors } from '../theme';
 
 const PRESETS = {
-  balanced: {
-    label: 'Balanced',
-    desc: 'Even mix of scoring and stats (~45%). Like a fantasy WR — birdies matter, but ball-striking separates the field.',
+  standard: {
+    label: 'Standard',
+    desc: 'Balanced mix of scoring, stats, and position bonuses. Birdies and ball-striking both matter.',
     scoring: {
-      eagle: 5, birdie: 3, par: 0.5, bogey: -1, double_bogey: -3, worse: -5,
-      fir_multiplier: 77, gir_multiplier: 104, distance_multiplier: 0.77,
-      great_shot_bonus: 3.91, poor_shot_penalty: -3.91,
+      eagle: 5, birdie: 3, par: 0.5, bogey: -1, double_bogey: -3,
+      fir_points: 20, gir_points: 25, dist_per_yard: 0.1,
+      great_shot_bonus: 2, poor_shot_penalty: -2,
     },
   },
-  scoring: {
-    label: 'Score Heavy',
-    desc: 'Birdies and eagles are king (~25% stats). The guy at the top of the real leaderboard usually wins.',
+  birdie_bonanza: {
+    label: 'Birdie Bonanza',
+    desc: 'Big rewards for birdies and eagles. The guy atop the real leaderboard usually wins fantasy too.',
     scoring: {
-      eagle: 8, birdie: 4, par: 0.5, bogey: -2, double_bogey: -4, worse: -6,
-      fir_multiplier: 25, gir_multiplier: 34, distance_multiplier: 0.25,
-      great_shot_bonus: 1.3, poor_shot_penalty: -1.3,
+      eagle: 8, birdie: 5, par: 0.5, bogey: -2, double_bogey: -5,
+      fir_points: 10, gir_points: 12, dist_per_yard: 0.05,
+      great_shot_bonus: 1, poor_shot_penalty: -1,
     },
   },
-  stats: {
-    label: 'Stat Heavy',
-    desc: 'Ball-striking and shot quality drive the scores (~60%). A player hitting fairways and greens can compete without many birdies.',
+  ball_striker: {
+    label: 'Ball Striker',
+    desc: 'Fairways, greens, and distance drive the scores. Precision and power are king.',
     scoring: {
-      eagle: 4, birdie: 2, par: 0.5, bogey: -0.5, double_bogey: -2, worse: -3,
-      fir_multiplier: 115, gir_multiplier: 156, distance_multiplier: 1.16,
-      great_shot_bonus: 5.87, poor_shot_penalty: -5.87,
+      eagle: 4, birdie: 2, par: 0.5, bogey: -0.5, double_bogey: -2,
+      fir_points: 35, gir_points: 45, dist_per_yard: 0.15,
+      great_shot_bonus: 3, poor_shot_penalty: -3,
     },
   },
 };
@@ -274,8 +274,7 @@ export default function CreateLeagueScreen({ navigation }) {
                 { key: 'birdie', label: 'Birdie', icon: '-1' },
                 { key: 'par', label: 'Par', icon: 'E' },
                 { key: 'bogey', label: 'Bogey', icon: '+1' },
-                { key: 'double_bogey', label: 'Double Bogey', icon: '+2' },
-                { key: 'worse', label: 'Triple+', icon: '+3' },
+                { key: 'double_bogey', label: 'Double Bogey+', icon: '+2' },
               ].map(item => (
                 <View key={item.key} style={styles.scoringRow}>
                   <View style={styles.scoringLabel}>
@@ -294,13 +293,13 @@ export default function CreateLeagueScreen({ navigation }) {
 
               <Text style={styles.sectionHeader}>Stat Bonuses</Text>
               <Text style={styles.hint}>
-                Relative to field average — above avg = positive, below = negative. Updates live during tournaments.
+                Flat points based on your player's stats for the week.
               </Text>
 
               {[
-                { key: 'fir_multiplier', label: 'Fairways Hit', desc: 'Multiplier per % above/below field avg' },
-                { key: 'gir_multiplier', label: 'Greens in Reg', desc: 'Multiplier per % above/below field avg' },
-                { key: 'distance_multiplier', label: 'Driving Distance', desc: 'Points per yard above/below field avg' },
+                { key: 'fir_points', label: 'Fairways Hit', desc: 'Points multiplied by FIR % (e.g. 65% = 13 pts)' },
+                { key: 'gir_points', label: 'Greens in Reg', desc: 'Points multiplied by GIR % (e.g. 70% = 17.5 pts)' },
+                { key: 'dist_per_yard', label: 'Driving Distance', desc: 'Points per yard of avg distance (e.g. 310 = 31 pts)' },
               ].map(item => (
                 <View key={item.key} style={styles.statRow}>
                   <View style={styles.statLabel}>
