@@ -30,8 +30,8 @@
       },
       "android": {
         "serviceAccountKeyPath": "../assets/fairwayfantasy-a04225a741d9.json",
-        "track": "internal",
-        "releaseStatus": "draft"
+        "track": "production",
+        "releaseStatus": "completed"
       }
     }
   }
