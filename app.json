@@ -21,7 +21,6 @@
           "NSAllowsArbitraryLoads": false
         },
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -47,7 +46,14 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1a472a"
+        }
+      ]
     ],
     "extra": {
       "eas": {

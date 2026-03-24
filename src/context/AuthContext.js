@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as api from '../services/api';
+import { registerForPushNotifications, unregisterPushToken } from '../services/notifications';
 
 const TOKEN_KEY = 'authToken';
 
@@ -33,6 +34,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const pushTokenRef = useRef(null);
 
   useEffect(() => {
     loadStoredAuth();
@@ -45,6 +47,10 @@ export function AuthProvider({ children }) {
         api.setToken(token);
         const userData = await api.getMe();
         setUser(userData);
+        // Register for push notifications after auth restore
+        registerForPushNotifications()
+          .then(t => { pushTokenRef.current = t; })
+          .catch(() => {});
       }
     } catch (err) {
       await removeStoredToken();
@@ -59,6 +65,10 @@ export function AuthProvider({ children }) {
     api.setToken(data.token);
     await setStoredToken(data.token);
     setUser(data.user);
+    // Register for push after login
+    registerForPushNotifications()
+      .then(t => { pushTokenRef.current = t; })
+      .catch(() => {});
   }
 
   async function register(email, password, displayName) {
@@ -66,9 +76,18 @@ export function AuthProvider({ children }) {
     api.setToken(data.token);
     await setStoredToken(data.token);
     setUser(data.user);
+    // Register for push after register
+    registerForPushNotifications()
+      .then(t => { pushTokenRef.current = t; })
+      .catch(() => {});
   }
 
   async function logout() {
+    // Unregister push token before clearing auth
+    if (pushTokenRef.current) {
+      await unregisterPushToken(pushTokenRef.current);
+      pushTokenRef.current = null;
+    }
     api.setToken(null);
     await removeStoredToken();
     setUser(null);

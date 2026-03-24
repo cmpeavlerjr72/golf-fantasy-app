@@ -106,6 +106,13 @@ export const acceptTrade = (leagueId, tradeId) =>
 export const declineTrade = (leagueId, tradeId) =>
   request(`/trades/${leagueId}/${tradeId}/decline`, { method: 'POST' });
 
+// Push notifications
+export const registerPushToken = (token, platform) =>
+  request('/push/register', { method: 'POST', body: JSON.stringify({ token, platform }) });
+
+export const unregisterPushToken = (token) =>
+  request('/push/unregister', { method: 'DELETE', body: JSON.stringify({ token }) });
+
 // Sync
 export const syncAll = () => request('/sync', { method: 'POST' });
 

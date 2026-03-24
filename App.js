@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text } from 'react-native';
+import { checkForUpdate } from './src/services/versionCheck';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -75,6 +76,10 @@ function HomeTabs() {
 
 function AppNavigator() {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    checkForUpdate();
+  }, []);
 
   if (loading) {
     return (

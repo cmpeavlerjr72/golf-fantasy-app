@@ -273,12 +273,12 @@ export default function SeasonHomeScreen({ route, navigation }) {
               <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
               {sb.fir && renderStatRow(
                 'Fairways Hit',
-                `${(sb.fir.value * 100).toFixed(1)}%`,
+                sb.fir.count != null ? `${sb.fir.count}/${sb.fir.total}` : `${(sb.fir.value * 100).toFixed(1)}%`,
                 sb.fir.pts
               )}
               {sb.gir && renderStatRow(
                 'Greens in Reg',
-                `${(sb.gir.value * 100).toFixed(1)}%`,
+                sb.gir.count != null ? `${sb.gir.count}/${sb.gir.total}` : `${(sb.gir.value * 100).toFixed(1)}%`,
                 sb.gir.pts
               )}
               {sb.distance && renderStatRow(
@@ -585,12 +585,12 @@ export default function SeasonHomeScreen({ route, navigation }) {
               <Text style={styles.statSectionTitle}>Stat Bonuses</Text>
               {sb.fir && renderStatRow(
                 'Fairways Hit',
-                `${(sb.fir.value * 100).toFixed(1)}%`,
+                sb.fir.count != null ? `${sb.fir.count}/${sb.fir.total}` : `${(sb.fir.value * 100).toFixed(1)}%`,
                 sb.fir.pts
               )}
               {sb.gir && renderStatRow(
                 'Greens in Reg',
-                `${(sb.gir.value * 100).toFixed(1)}%`,
+                sb.gir.count != null ? `${sb.gir.count}/${sb.gir.total}` : `${(sb.gir.value * 100).toFixed(1)}%`,
                 sb.gir.pts
               )}
               {sb.distance && renderStatRow(
@@ -890,39 +890,40 @@ export default function SeasonHomeScreen({ route, navigation }) {
           const sum = (key) => hist.reduce((s, h) => s + (h[key] || 0), 0);
 
           return (
-            <TouchableOpacity
-              style={styles.playerListCard}
-              onPress={() => setExpandedPlayerRow(isExpanded ? null : item.playerName)}
-              activeOpacity={0.7}
-            >
-              {/* Collapsed row */}
-              <View style={styles.playerListHeader}>
-                <View style={styles.playerListRankCol}>
-                  <Text style={styles.playerListRank}>
-                    {playerSort === 'owgr' ? (item.owgrRank || '-')
-                      : playerSort === 'avgPts' ? (avgPts > -9000 ? avgPts.toFixed(0) : '-')
-                      : (item.dgRank || '-')}
-                  </Text>
-                </View>
-                <View style={styles.playerListInfo}>
-                  <Text style={styles.playerListName}>{item.playerName}</Text>
-                  <View style={styles.playerListMeta}>
-                    {item.owner ? (
-                      <View style={[styles.ownerBadge, item.owner.isMe && styles.ownerBadgeMe]}>
-                        <Text style={[styles.ownerBadgeText, item.owner.isMe && styles.ownerBadgeTextMe]}>
-                          {item.owner.isMe ? 'My Team' : item.owner.teamName}
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.freeAgentLabel}>Free Agent</Text>
-                    )}
-                    {item.sgTotal != null && (
-                      <Text style={styles.playerListSg}>SG: {item.sgTotal.toFixed(2)}</Text>
-                    )}
+            <View style={styles.playerListCard}>
+              <TouchableOpacity
+                onPress={() => setExpandedPlayerRow(isExpanded ? null : item.playerName)}
+                activeOpacity={0.7}
+              >
+                {/* Collapsed row */}
+                <View style={styles.playerListHeader}>
+                  <View style={styles.playerListRankCol}>
+                    <Text style={styles.playerListRank}>
+                      {playerSort === 'owgr' ? (item.owgrRank || '-')
+                        : playerSort === 'avgPts' ? (avgPts > -9000 ? avgPts.toFixed(0) : '-')
+                        : (item.dgRank || '-')}
+                    </Text>
                   </View>
+                  <View style={styles.playerListInfo}>
+                    <Text style={styles.playerListName}>{item.playerName}</Text>
+                    <View style={styles.playerListMeta}>
+                      {item.owner ? (
+                        <View style={[styles.ownerBadge, item.owner.isMe && styles.ownerBadgeMe]}>
+                          <Text style={[styles.ownerBadgeText, item.owner.isMe && styles.ownerBadgeTextMe]}>
+                            {item.owner.isMe ? 'My Team' : item.owner.teamName}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.freeAgentLabel}>Free Agent</Text>
+                      )}
+                      {item.sgTotal != null && (
+                        <Text style={styles.playerListSg}>SG: {item.sgTotal.toFixed(2)}</Text>
+                      )}
+                    </View>
+                  </View>
+                  <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
                 </View>
-                <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
-              </View>
+              </TouchableOpacity>
 
               {/* Expanded player card */}
               {isExpanded && (
@@ -1116,7 +1117,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
                   )}
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
           );
         }}
         ListEmptyComponent={

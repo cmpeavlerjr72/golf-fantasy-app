@@ -256,55 +256,56 @@ export default function DraftScreen({ route }) {
     const sum = (key) => hist.reduce((s, h) => s + (h[key] || 0), 0);
 
     return (
-      <TouchableOpacity
-        style={[styles.playerListCard, isDrafted && styles.playerListCardDrafted]}
-        onPress={() => setExpandedPlayerRow(isExpanded ? null : item.playerName)}
-        activeOpacity={0.7}
-      >
-        {/* Collapsed row */}
-        <View style={styles.playerListHeader}>
-          <View style={styles.playerListRankCol}>
-            <Text style={styles.playerListRank}>
-              {playerSort === 'owgr' ? (item.owgrRank || '-')
-                : playerSort === 'avgPts' ? (avgPts > -9000 ? avgPts.toFixed(0) : '-')
-                : (item.dgRank || '-')}
-            </Text>
-          </View>
-          <View style={styles.playerListInfo}>
-            <Text style={[styles.playerListName, isDrafted && styles.playerListNameDrafted]}>
-              {item.playerName}
-            </Text>
-            <View style={styles.playerListMeta}>
-              {isDrafted && draftedBy ? (
-                <View style={[styles.ownerBadge, draftedBy.isMe && styles.ownerBadgeMe]}>
-                  <Text style={[styles.ownerBadgeText, draftedBy.isMe && styles.ownerBadgeTextMe]}>
-                    {draftedBy.isMe ? 'My Pick' : draftedBy.teamName}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={styles.freeAgentLabel}>Available</Text>
-              )}
-              {item.sgTotal != null && (
-                <Text style={styles.playerListSg}>SG: {item.sgTotal.toFixed(2)}</Text>
-              )}
+      <View style={[styles.playerListCard, isDrafted && styles.playerListCardDrafted]}>
+        <TouchableOpacity
+          onPress={() => setExpandedPlayerRow(isExpanded ? null : item.playerName)}
+          activeOpacity={0.7}
+        >
+          {/* Collapsed row */}
+          <View style={styles.playerListHeader}>
+            <View style={styles.playerListRankCol}>
+              <Text style={styles.playerListRank}>
+                {playerSort === 'owgr' ? (item.owgrRank || '-')
+                  : playerSort === 'avgPts' ? (avgPts > -9000 ? avgPts.toFixed(0) : '-')
+                  : (item.dgRank || '-')}
+              </Text>
             </View>
+            <View style={styles.playerListInfo}>
+              <Text style={[styles.playerListName, isDrafted && styles.playerListNameDrafted]}>
+                {item.playerName}
+              </Text>
+              <View style={styles.playerListMeta}>
+                {isDrafted && draftedBy ? (
+                  <View style={[styles.ownerBadge, draftedBy.isMe && styles.ownerBadgeMe]}>
+                    <Text style={[styles.ownerBadgeText, draftedBy.isMe && styles.ownerBadgeTextMe]}>
+                      {draftedBy.isMe ? 'My Pick' : draftedBy.teamName}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.freeAgentLabel}>Available</Text>
+                )}
+                {item.sgTotal != null && (
+                  <Text style={styles.playerListSg}>SG: {item.sgTotal.toFixed(2)}</Text>
+                )}
+              </View>
+            </View>
+            {/* Draft button */}
+            {isMyTurn && !isDrafted && (
+              <Pressable
+                style={styles.draftBtn}
+                onPress={() => handlePick(item.playerName)}
+                {...(Platform.OS === 'web' ? {
+                  onStartShouldSetResponder: () => true,
+                  onTouchEnd: (e) => { e.stopPropagation(); },
+                  onClick: (e) => { e.stopPropagation(); handlePick(item.playerName); },
+                } : {})}
+              >
+                <Text style={styles.draftBtnText}>Draft</Text>
+              </Pressable>
+            )}
+            <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
           </View>
-          {/* Draft button */}
-          {isMyTurn && !isDrafted && (
-            <Pressable
-              style={styles.draftBtn}
-              onPress={() => handlePick(item.playerName)}
-              {...(Platform.OS === 'web' ? {
-                onStartShouldSetResponder: () => true,
-                onTouchEnd: (e) => { e.stopPropagation(); },
-                onClick: (e) => { e.stopPropagation(); handlePick(item.playerName); },
-              } : {})}
-            >
-              <Text style={styles.draftBtnText}>Draft</Text>
-            </Pressable>
-          )}
-          <Text style={styles.playerExpandArrow}>{isExpanded ? '^' : 'v'}</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Expanded player card */}
         {isExpanded && (
@@ -449,7 +450,7 @@ export default function DraftScreen({ route }) {
             )}
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
   }
 
