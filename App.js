@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { checkForUpdate } from './src/services/versionCheck';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -74,12 +75,30 @@ function HomeTabs() {
   );
 }
 
-function AppNavigator() {
+function AppNavigator({ navigationRef }) {
   const { user, loading } = useAuth();
 
   useEffect(() => {
     checkForUpdate();
   }, []);
+
+  // Handle notification taps — navigate to the relevant screen
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (!data || !navigationRef.current) return;
+
+      const nav = navigationRef.current;
+      if (data.type === 'draft_started' || data.type === 'draft_turn') {
+        nav.navigate('Draft', { leagueId: data.leagueId });
+      } else if (data.type === 'trade_proposed' || data.type === 'trade_accepted' || data.type === 'trade_declined') {
+        nav.navigate('SeasonHome', { leagueId: data.leagueId });
+      } else if (data.type === 'lineup_reminder' || data.type === 'scores_finalized') {
+        nav.navigate('SeasonHome', { leagueId: data.leagueId });
+      }
+    });
+    return () => subscription.remove();
+  }, [navigationRef]);
 
   if (loading) {
     return (
@@ -115,12 +134,14 @@ function AppNavigator() {
 }
 
 export default function App() {
+  const navigationRef = useRef(null);
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <StatusBar style="light" />
-          <AppNavigator />
+          <AppNavigator navigationRef={navigationRef} />
         </NavigationContainer>
       </AuthProvider>
     </SafeAreaProvider>

@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
         // Register for push notifications after auth restore
         registerForPushNotifications()
           .then(t => { pushTokenRef.current = t; })
-          .catch(() => {});
+          .catch(err => console.warn('Push registration failed (restore):', err.message));
       }
     } catch (err) {
       await removeStoredToken();
@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
     // Register for push after login
     registerForPushNotifications()
       .then(t => { pushTokenRef.current = t; })
-      .catch(() => {});
+      .catch(err => console.warn('Push registration failed (login):', err.message));
   }
 
   async function register(email, password, displayName) {
@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
     // Register for push after register
     registerForPushNotifications()
       .then(t => { pushTokenRef.current = t; })
-      .catch(() => {});
+      .catch(err => console.warn('Push registration failed (register):', err.message));
   }
 
   async function logout() {

@@ -13,6 +13,9 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Hardcoded fallback — matches app.json extra.eas.projectId
+const EAS_PROJECT_ID = '732b8271-5a36-419d-b171-b3b88a67cb08';
+
 /**
  * Register for push notifications and send token to backend
  */
@@ -38,17 +41,24 @@ export async function registerForPushNotifications() {
     return null;
   }
 
-  // Get the Expo push token
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  // Get the Expo push token — try multiple sources for the project ID
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId ??
+    EAS_PROJECT_ID;
+
+  console.log('[Push] Registering with projectId:', projectId);
+
   const tokenData = await Notifications.getExpoPushTokenAsync({
     projectId,
   });
 
   const token = tokenData.data;
+  console.log('[Push] Got Expo push token:', token);
 
   // Android notification channel
   if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
+    await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
@@ -58,8 +68,9 @@ export async function registerForPushNotifications() {
   // Register token with backend
   try {
     await api.registerPushToken(token, Platform.OS);
+    console.log('[Push] Token registered with backend');
   } catch (err) {
-    console.warn('Failed to register push token:', err.message);
+    console.warn('[Push] Failed to register token with backend:', err.message);
   }
 
   return token;
