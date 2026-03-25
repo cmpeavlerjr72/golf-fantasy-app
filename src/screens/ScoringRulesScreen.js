@@ -35,19 +35,19 @@ export default function ScoringRulesScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Stat Bonuses</Text>
           <Text style={styles.sectionDesc}>Flat points based on your player's weekly stats.</Text>
           <View style={styles.statExample}>
-            <Text style={styles.statName}>Fairways Hit (FIR)</Text>
-            <Text style={styles.statFormula}>FIR% x 20 pts</Text>
-            <Text style={styles.statExText}>65% accuracy = 13 pts</Text>
+            <Text style={styles.statName}>Fairways Hit</Text>
+            <Text style={styles.statFormula}>+0.5 pts per fairway hit</Text>
+            <Text style={styles.statExText}>36 fairways in a week = 18 pts</Text>
           </View>
           <View style={styles.statExample}>
-            <Text style={styles.statName}>Greens in Regulation (GIR)</Text>
-            <Text style={styles.statFormula}>GIR% x 25 pts</Text>
-            <Text style={styles.statExText}>70% GIR = 17.5 pts</Text>
+            <Text style={styles.statName}>Greens in Regulation</Text>
+            <Text style={styles.statFormula}>+0.5 pts per green hit</Text>
+            <Text style={styles.statExText}>50 greens in a week = 25 pts</Text>
           </View>
           <View style={styles.statExample}>
             <Text style={styles.statName}>Driving Distance</Text>
-            <Text style={styles.statFormula}>Avg yards x 0.1 pts</Text>
-            <Text style={styles.statExText}>310 yards = 31 pts</Text>
+            <Text style={styles.statFormula}>+0.1 pts per yard of avg distance</Text>
+            <Text style={styles.statExText}>310 yard average = 31 pts</Text>
           </View>
           <View style={styles.divider} />
           {[

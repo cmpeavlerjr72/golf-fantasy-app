@@ -12,7 +12,7 @@ const PRESETS = {
     desc: 'Balanced mix of scoring, stats, and position bonuses. Birdies and ball-striking both matter.',
     scoring: {
       eagle: 5, birdie: 3, par: 0.5, bogey: -1, double_bogey: -3,
-      fir_points: 20, gir_points: 25, dist_per_yard: 0.1,
+      pts_per_fairway: 0.5, pts_per_green: 0.5, dist_per_yard: 0.1,
       great_shot_bonus: 2, poor_shot_penalty: -2,
     },
   },
@@ -21,7 +21,7 @@ const PRESETS = {
     desc: 'Big rewards for birdies and eagles. The guy atop the real leaderboard usually wins fantasy too.',
     scoring: {
       eagle: 8, birdie: 5, par: 0.5, bogey: -2, double_bogey: -5,
-      fir_points: 10, gir_points: 12, dist_per_yard: 0.05,
+      pts_per_fairway: 0.25, pts_per_green: 0.25, dist_per_yard: 0.05,
       great_shot_bonus: 1, poor_shot_penalty: -1,
     },
   },
@@ -30,7 +30,7 @@ const PRESETS = {
     desc: 'Fairways, greens, and distance drive the scores. Precision and power are king.',
     scoring: {
       eagle: 4, birdie: 2, par: 0.5, bogey: -0.5, double_bogey: -2,
-      fir_points: 35, gir_points: 45, dist_per_yard: 0.15,
+      pts_per_fairway: 1, pts_per_green: 1, dist_per_yard: 0.15,
       great_shot_bonus: 3, poor_shot_penalty: -3,
     },
   },
@@ -297,9 +297,9 @@ export default function CreateLeagueScreen({ navigation }) {
               </Text>
 
               {[
-                { key: 'fir_points', label: 'Fairways Hit', desc: 'Points multiplied by FIR % (e.g. 65% = 13 pts)' },
-                { key: 'gir_points', label: 'Greens in Reg', desc: 'Points multiplied by GIR % (e.g. 70% = 17.5 pts)' },
-                { key: 'dist_per_yard', label: 'Driving Distance', desc: 'Points per yard of avg distance (e.g. 310 = 31 pts)' },
+                { key: 'pts_per_fairway', label: 'Per Fairway Hit', desc: 'Points for each fairway hit (e.g. 36 fairways × 0.5 = 18 pts)' },
+                { key: 'pts_per_green', label: 'Per Green in Reg', desc: 'Points for each green hit (e.g. 50 greens × 0.5 = 25 pts)' },
+                { key: 'dist_per_yard', label: 'Per Yard (Distance)', desc: 'Points per yard of avg distance (e.g. 310 yds × 0.1 = 31 pts)' },
               ].map(item => (
                 <View key={item.key} style={styles.statRow}>
                   <View style={styles.statLabel}>
