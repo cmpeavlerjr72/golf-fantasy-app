@@ -306,6 +306,14 @@ export default function SeasonHomeScreen({ route, navigation }) {
                 </Text>
               </View>
             </View>
+
+            {/* Shot Tracker link */}
+            <TouchableOpacity
+              style={styles.shotTrackerBtn}
+              onPress={() => navigation.navigate('ShotTracker', { playerName: p.playerName })}
+            >
+              <Text style={styles.shotTrackerBtnText}>View Shot-by-Shot →</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -1235,6 +1243,12 @@ const styles = StyleSheet.create({
   playerCardThru: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
   playerExpandArrow: { color: colors.textMuted, fontSize: 14, width: 18, textAlign: 'center' },
   playerCardBody: { backgroundColor: colors.bgCard },
+  shotTrackerBtn: {
+    marginHorizontal: 12, marginVertical: 8, paddingVertical: 10,
+    borderRadius: 8, backgroundColor: colors.accentDark + '44',
+    alignItems: 'center', borderWidth: 1, borderColor: colors.accentDark,
+  },
+  shotTrackerBtnText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
 
   // Stat sections
   statSection: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },

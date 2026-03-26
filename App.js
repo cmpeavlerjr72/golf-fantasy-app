@@ -22,6 +22,7 @@ import SeasonHomeScreen from './src/screens/SeasonHomeScreen';
 import FreeAgentsScreen from './src/screens/FreeAgentsScreen';
 import ProposeTradeScreen from './src/screens/ProposeTradeScreen';
 import ScoringRulesScreen from './src/screens/ScoringRulesScreen';
+import ShotTrackerScreen from './src/screens/ShotTrackerScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -127,6 +128,7 @@ function AppNavigator({ navigationRef }) {
           <Stack.Screen name="FreeAgents" component={FreeAgentsScreen} options={{ title: 'Free Agents' }} />
           <Stack.Screen name="ProposeTrade" component={ProposeTradeScreen} options={{ title: 'Propose Trade' }} />
           <Stack.Screen name="ScoringRules" component={ScoringRulesScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ShotTracker" component={ShotTrackerScreen} options={{ title: 'Shot Tracker' }} />
         </>
       )}
     </Stack.Navigator>

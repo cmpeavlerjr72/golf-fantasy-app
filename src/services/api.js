@@ -113,6 +113,13 @@ export const registerPushToken = (token, platform) =>
 export const unregisterPushToken = (token) =>
   request('/push/unregister', { method: 'DELETE', body: JSON.stringify({ token }) });
 
+// Shot Tracker
+export const getShotRounds = (playerName) =>
+  request(`/shots/${encodeURIComponent(playerName)}/rounds`);
+
+export const getShotDetails = (playerName, round) =>
+  request(`/shots/${encodeURIComponent(playerName)}/round/${round}`);
+
 // Sync
 export const syncAll = () => request('/sync', { method: 'POST' });
 
