@@ -46,7 +46,7 @@ function getShotTypeColor(stroke) {
 }
 
 export default function ShotTrackerScreen({ route, navigation }) {
-  const { playerName } = route.params;
+  const { playerName, initialRound, initialHole } = route.params;
   const [rounds, setRounds] = useState([]);
   const [selectedRound, setSelectedRound] = useState(null);
   const [data, setData] = useState(null);
@@ -55,9 +55,11 @@ export default function ShotTrackerScreen({ route, navigation }) {
   const [greenView, setGreenView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [imageSize, setImageSize] = useState(null);
+  const appliedInitialRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
+      appliedInitialRef.current = false;
       loadRounds();
     }, [playerName])
   );
@@ -71,10 +73,15 @@ export default function ShotTrackerScreen({ route, navigation }) {
         return;
       }
       setRounds(result.rounds);
-      // Auto-select latest round
-      const latest = result.rounds[result.rounds.length - 1];
-      setSelectedRound(latest.round);
-      await loadRound(latest.round);
+      // Use initialRound if provided and available, otherwise latest
+      let targetRound;
+      if (initialRound && !appliedInitialRef.current && result.rounds.some(r => r.round === initialRound)) {
+        targetRound = initialRound;
+      } else {
+        targetRound = result.rounds[result.rounds.length - 1].round;
+      }
+      setSelectedRound(targetRound);
+      await loadRound(targetRound);
     } catch (err) {
       Alert.alert('Error', err.message);
       setLoading(false);
@@ -89,6 +96,12 @@ export default function ShotTrackerScreen({ route, navigation }) {
     try {
       const result = await api.getShotDetails(playerName, round);
       setData(result);
+      // Jump to initialHole if this is the initial load with deep-link params
+      if (initialHole && !appliedInitialRef.current && result?.holes) {
+        const idx = result.holes.findIndex(h => h.holeNumber === initialHole);
+        if (idx >= 0) setSelectedHoleIdx(idx);
+        appliedInitialRef.current = true;
+      }
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
@@ -243,14 +256,6 @@ export default function ShotTrackerScreen({ route, navigation }) {
                   );
                 })()}
               </Svg>
-            )}
-            {hole.overlayGreenUrl && (
-              <TouchableOpacity
-                style={styles.greenToggle}
-                onPress={() => { setGreenView(!greenView); setImageSize(null); }}
-              >
-                <Text style={styles.greenToggleText}>{greenView ? 'Full Hole' : 'Green View'}</Text>
-              </TouchableOpacity>
             )}
           </View>
         )}

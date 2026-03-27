@@ -27,6 +27,7 @@ export default function SeasonHomeScreen({ route, navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [expandedPlayer, setExpandedPlayer] = useState(null);
+  const [inferredHolesCache, setInferredHolesCache] = useState({});
   const [initialLoad, setInitialLoad] = useState(true);
   const autoRefreshTimer = useRef(null);
   const isFocused = useRef(true);
@@ -203,6 +204,54 @@ export default function SeasonHomeScreen({ route, navigation }) {
     );
   }
 
+  // Fetch inferred shot holes for a player (cached)
+  function loadInferredHoles(playerName) {
+    const tournamentId = weeklyScores?.tournament?.id;
+    if (!tournamentId) return;
+    const cacheKey = `${playerName}:${tournamentId}`;
+    if (inferredHolesCache[cacheKey]) return;
+    api.getInferredShotHoles(playerName, tournamentId)
+      .then(data => setInferredHolesCache(prev => ({ ...prev, [cacheKey]: data })))
+      .catch(() => {});
+  }
+
+  function renderShotHoleBadges(playerName, shotType) {
+    const tournamentId = weeklyScores?.tournament?.id;
+    if (!tournamentId) return null;
+    const cacheKey = `${playerName}:${tournamentId}`;
+    const data = inferredHolesCache[cacheKey];
+    if (!data) return null;
+
+    const entries = shotType === 'great' ? data.great_shots : data.poor_shots;
+    if (!entries || entries.length === 0) return null;
+
+    const badgeColor = shotType === 'great' ? colors.positive : colors.negative;
+
+    return (
+      <View style={styles.shotHoleBadges}>
+        {entries.map((entry, idx) => {
+          const label = entry.exact
+            ? `R${entry.round}:H${entry.possible_holes[0]}`
+            : `R${entry.round}:H${entry.possible_holes.join('-')}?`;
+          const targetHole = entry.possible_holes[0];
+          return (
+            <TouchableOpacity
+              key={`${shotType}-${idx}`}
+              style={[styles.shotHoleBadge, { borderColor: badgeColor }]}
+              onPress={() => navigation.navigate('ShotTracker', {
+                playerName,
+                initialRound: entry.round,
+                initialHole: targetHole,
+              })}
+            >
+              <Text style={[styles.shotHoleBadgeText, { color: badgeColor }]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
   function renderPlayerCard(p, i, teamId) {
     const playerKey = `${teamId}-${p.playerName}`;
     const isPlayerExpanded = expandedPlayer === playerKey;
@@ -220,7 +269,11 @@ export default function SeasonHomeScreen({ route, navigation }) {
       <View key={i} style={styles.playerCard}>
         <TouchableOpacity
           style={styles.playerCardHeader}
-          onPress={() => setExpandedPlayer(isPlayerExpanded ? null : playerKey)}
+          onPress={() => {
+            const expanding = !isPlayerExpanded;
+            setExpandedPlayer(expanding ? playerKey : null);
+            if (expanding) loadInferredHoles(p.playerName);
+          }}
         >
           <View style={styles.playerCardLeft}>
             <Text style={styles.playerCardName}>{p.playerName}</Text>
@@ -286,15 +339,17 @@ export default function SeasonHomeScreen({ route, navigation }) {
                 `${sb.distance.value?.toFixed(0)} yds`,
                 sb.distance.pts
               )}
-              {sb.great_shots && renderStatRow(
-                'Great Shots',
-                `${sb.great_shots.count}`,
-                sb.great_shots.pts
+              {sb.great_shots && (
+                <View>
+                  {renderStatRow('Great Shots', `${sb.great_shots.count}`, sb.great_shots.pts)}
+                  {renderShotHoleBadges(p.playerName, 'great')}
+                </View>
               )}
-              {sb.poor_shots && renderStatRow(
-                'Poor Shots',
-                `${sb.poor_shots.count}`,
-                sb.poor_shots.pts
+              {sb.poor_shots && (
+                <View>
+                  {renderStatRow('Poor Shots', `${sb.poor_shots.count}`, sb.poor_shots.pts)}
+                  {renderShotHoleBadges(p.playerName, 'poor')}
+                </View>
               )}
               {Object.keys(sb).length === 0 && (
                 <Text style={styles.noDataText}>No stat data yet</Text>
@@ -1249,6 +1304,15 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderColor: colors.accentDark,
   },
   shotTrackerBtnText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
+
+  // Shot hole badges (inferred great/poor shot links)
+  shotHoleBadges: {
+    flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 4, gap: 6,
+  },
+  shotHoleBadge: {
+    borderWidth: 1, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  shotHoleBadgeText: { fontSize: 11, fontWeight: '600' },
 
   // Stat sections
   statSection: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },

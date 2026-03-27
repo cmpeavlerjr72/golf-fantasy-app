@@ -120,6 +120,9 @@ export const getShotRounds = (playerName) =>
 export const getShotDetails = (playerName, round) =>
   request(`/shots/${encodeURIComponent(playerName)}/round/${round}`);
 
+export const getInferredShotHoles = (playerName, tournamentId) =>
+  request(`/shots/${encodeURIComponent(playerName)}/inferred-holes?tournamentId=${tournamentId}`);
+
 // Sync
 export const syncAll = () => request('/sync', { method: 'POST' });
 
