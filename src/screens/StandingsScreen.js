@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as api from '../services/api';
 import { colors } from '../theme';
 
-export default function StandingsScreen({ route }) {
+export default function StandingsScreen({ route, navigation }) {
   const { leagueId } = route.params;
   const [standings, setStandings] = useState(null);
   const [expandedTeam, setExpandedTeam] = useState(null);
@@ -91,14 +91,20 @@ export default function StandingsScreen({ route }) {
                       .some(p => p.playerName === player.playerName);
 
                   return (
-                    <View key={i} style={[styles.playerRow, isCounting && styles.countingPlayer]}>
+                    <TouchableOpacity
+                      key={i}
+                      style={[styles.playerRow, isCounting && styles.countingPlayer]}
+                      onPress={() => navigation.navigate('ShotTracker', { playerName: player.playerName })}
+                      activeOpacity={0.6}
+                    >
                       <Text style={styles.playerPosition}>{player.position || '-'}</Text>
                       <Text style={styles.playerName}>{player.playerName}</Text>
                       <Text style={styles.playerThru}>{player.thru || '-'}</Text>
                       <Text style={[styles.playerScore, { color: scoreColor(player.scoreToPar) }]}>
                         {formatScore(player.scoreToPar)}
                       </Text>
-                    </View>
+                      <Text style={styles.shotTrackerArrow}>{'>'}</Text>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -148,4 +154,5 @@ const styles = StyleSheet.create({
   playerName: { flex: 1, color: colors.textPrimary, fontSize: 14 },
   playerThru: { color: colors.textMuted, fontSize: 13, width: 36, textAlign: 'center' },
   playerScore: { fontSize: 15, fontWeight: '700', width: 40, textAlign: 'right' },
+  shotTrackerArrow: { color: colors.textMuted, fontSize: 14, marginLeft: 8, fontWeight: '600' },
 });
