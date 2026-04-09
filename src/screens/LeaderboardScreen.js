@@ -67,7 +67,7 @@ export default function LeaderboardScreen() {
         renderItem={({ item, index }) => (
           <View style={[styles.row, index % 2 === 0 && styles.rowAlt]}>
             <Text style={styles.colPos}>{item.position || '-'}</Text>
-            <Text style={styles.colName} numberOfLines={1}>{item.playerName}</Text>
+            <Text style={styles.colName} numberOfLines={1}>{item.countryFlag ? `${item.countryFlag} ${item.playerName}` : item.playerName}</Text>
             <Text style={styles.colThru}>{item.thru || '-'}</Text>
             <Text style={[styles.colToday, { color: scoreColor(item.today) }]}>
               {formatScore(item.today)}
