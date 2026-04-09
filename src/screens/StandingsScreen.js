@@ -98,7 +98,7 @@ export default function StandingsScreen({ route, navigation }) {
                       activeOpacity={0.6}
                     >
                       <Text style={styles.playerPosition}>{player.position || '-'}</Text>
-                      <Text style={styles.playerName}>{player.countryFlag ? `${player.countryFlag} ${player.playerName}` : player.playerName}</Text>
+                      <Text style={styles.playerName}>{player.playerName}</Text>
                       <Text style={styles.playerThru}>{player.thru || '-'}</Text>
                       <Text style={[styles.playerScore, { color: scoreColor(player.scoreToPar) }]}>
                         {formatScore(player.scoreToPar)}
