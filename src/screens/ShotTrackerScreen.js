@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
-  RefreshControl, Image, ScrollView, Dimensions,
+  RefreshControl, Image, ScrollView, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Line, Circle } from 'react-native-svg';
+import { WebView } from 'react-native-webview';
 import * as api from '../services/api';
 import { colors } from '../theme';
 
@@ -201,8 +202,60 @@ export default function ShotTrackerScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Course overlay */}
-        {(greenView ? hole.overlayGreenUrl : hole.overlayFullUrl) && (
+        {/* Course overlay — Masters uses embedded 3D tracker, PGA uses pickle images */}
+        {data.isMasters && data.pgaPlayerId ? (
+          <View style={styles.mastersWebViewContainer}>
+            <WebView
+              source={{ uri: `https://www.masters.com/en_US/scores/track/hole_view/index.html?pid=${data.pgaPlayerId}` }}
+              style={styles.mastersWebView}
+              javaScriptEnabled
+              domStorageEnabled
+              startInLoadingState
+              renderLoading={() => (
+                <View style={styles.webViewLoading}>
+                  <ActivityIndicator size="large" color={colors.accent} />
+                  <Text style={styles.webViewLoadingText}>Loading 3D Shot Tracker...</Text>
+                </View>
+              )}
+              // Hide the masters.com header/nav — only show the 3D canvas
+              injectedJavaScript={`
+                (function() {
+                  // Hide nav, header, player bar, cookie banner, footer
+                  var selectors = [
+                    'header', 'nav', '.navbar', '.header',
+                    '.cookie-notice', '.cookie-banner', '[class*="cookie"]',
+                    '.footer', 'footer',
+                    '.track-player-bar',
+                  ];
+                  selectors.forEach(function(sel) {
+                    document.querySelectorAll(sel).forEach(function(el) {
+                      el.style.display = 'none';
+                    });
+                  });
+                  // Give the 3D canvas more room
+                  var canvas = document.querySelector('canvas');
+                  if (canvas) {
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                  }
+                  // Re-run after content loads
+                  setTimeout(function() {
+                    selectors.forEach(function(sel) {
+                      document.querySelectorAll(sel).forEach(function(el) {
+                        el.style.display = 'none';
+                      });
+                    });
+                  }, 3000);
+                })();
+                true;
+              `}
+              onShouldStartLoadWithRequest={(request) => {
+                // Keep navigation within masters.com
+                return request.url.includes('masters.com') || request.url.startsWith('about:');
+              }}
+            />
+          </View>
+        ) : (greenView ? hole.overlayGreenUrl : hole.overlayFullUrl) ? (
           <View style={styles.overlayContainer}>
             <Image
               source={{ uri: greenView ? hole.overlayGreenUrl : hole.overlayFullUrl }}
@@ -219,7 +272,6 @@ export default function ShotTrackerScreen({ route, navigation }) {
                   const from = greenView ? s.greenFrom : s.from;
                   const to = greenView ? s.greenTo : s.to;
                   if (!from || !to) return null;
-                  // Skip off-image shots in green view
                   if (greenView && from.x < -0.5 && to.x < -0.5) return null;
 
                   const x1 = from.x * imageSize.width;
@@ -246,7 +298,6 @@ export default function ShotTrackerScreen({ route, navigation }) {
                     </React.Fragment>
                   );
                 })}
-                {/* Pin */}
                 {(() => {
                   const pin = greenView ? hole.pinGreen : hole.pin;
                   if (!pin) return null;
@@ -258,7 +309,7 @@ export default function ShotTrackerScreen({ route, navigation }) {
               </Svg>
             )}
           </View>
-        )}
+        ) : null}
 
         {/* Shot cards */}
         {hole.strokes.map((s, si) => (
@@ -397,6 +448,17 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   overlayImage: { width: '100%', aspectRatio: 2.34 },
+  mastersWebViewContainer: {
+    marginHorizontal: 16, marginBottom: 16, borderRadius: 12,
+    overflow: 'hidden', borderWidth: 1, borderColor: colors.border,
+    height: 350, backgroundColor: '#0d1a12',
+  },
+  mastersWebView: { flex: 1, backgroundColor: 'transparent' },
+  webViewLoading: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center', alignItems: 'center', backgroundColor: '#0d1a12',
+  },
+  webViewLoadingText: { color: colors.textSecondary, marginTop: 8, fontSize: 13 },
   greenToggle: {
     position: 'absolute', top: 8, right: 8,
     backgroundColor: 'rgba(15,25,20,0.85)', borderRadius: 6,
